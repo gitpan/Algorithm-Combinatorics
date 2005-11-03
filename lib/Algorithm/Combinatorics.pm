@@ -3,7 +3,7 @@ package Algorithm::Combinatorics;
 use strict;
 use warnings;
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 use Carp;
 use Scalar::Util qw(reftype);
@@ -68,7 +68,7 @@ sub variations {
 sub variations_with_repetition {
     my ($data, $k) = @_;
 	__check_params($data, $k);
-
+	
     my @indices = ((0) x ($k-1), -1);
     my @out     = ($data->[0]) x $k;
 
@@ -87,21 +87,21 @@ sub permutations {
 sub __check_params {
 	my ($data, $k) = @_;
 	if (not defined $data) {
-		croak("missing parameter data");
+		croak("Missing parameter data");
 	}
 	if (not defined $k) {
-		croak("missing parameter k");
+		croak("Missing parameter k");
 	}
 	
 	my $type = reftype $data;
 	if (!defined($type) || $type ne "ARRAY") {
-		croak("parameter data is not an arrayref");
+		croak("Parameter data is not an arrayref");
 	}
 	if (@$data == 0) {
-		croak("parameter data cannot be empty");
+		croak("Parameter data cannot be empty");
 	}
 	if ($k < 1) {
-		croak("parameter k must be greater than or equal to 1");
+		croak("Parameter k must be greater than or equal to 1");
 	}
 		
 }
@@ -110,7 +110,7 @@ sub __check_params_le {
 	&__check_params;
 	my ($data, $k) = @_;
 	if ($k > @$data) {
-		croak('parameter k is greater than the length of data');
+		croak('Parameter k is greater than the length of data');
 	}
 }
 
@@ -130,7 +130,7 @@ sub __wanted {
         }
     } else {
         my $sub = (caller(1))[3];
-        carp("$sub called in void context\n");
+        carp("Useless use of $sub in void context");
     }
 }
 
@@ -157,6 +157,10 @@ Algorithm::Combinatorics - Efficient generation of combinatorial sequences
  # list context slurps
  my @all_permutations = permutations(\@data);
 
+=head1 VERSION
+
+This documentation refers to Algorithm::Combinatorics version 0.02.
+
 =head1 DESCRIPTION
 
 Algorithm::Combinatorics is an efficient generator of combinatorial sequences,
@@ -176,7 +180,7 @@ Memory: No recursion and no stacks are used.
 
 Tuples are generated in lexicographic order.
 
-=head1 USAGE
+=head1 SUBROUTINES
 
 Algorithm::Combinatorics provides these subroutines:
 
@@ -184,7 +188,7 @@ Algorithm::Combinatorics provides these subroutines:
     variations(\@data, $k)
     variations_with_repetition(\@data, $k)
     combinations(\@data, $k)
-    combinations_with_repetition(\@data, $k);
+    combinations_with_repetition(\@data, $k)
 
 All of them are context-sensitive:
 
@@ -192,14 +196,13 @@ All of them are context-sensitive:
 
 =item * 
 
-In scalar context the subroutines return an iterator that responds to the C<next> method. Using this object you can iterate over the sequence of tuples one by one. Since no recursion and no stacks are used in each iteration the memory usage is minimal.
+In scalar context the subroutines return an iterator that responds to the C<next> method. Using this object you can iterate over the sequence of tuples one by one. Since no recursion and no stacks are used the memory usage is minimal. We can iterate over sequences of virtually any size.
 
 =item * 
 
-In list context the subroutines slurp the entire set of tuples. This behaviour is offered for convenience, but take into account that the array may be huge.
+In list context the subroutines slurp the entire set of tuples. This behaviour is offered for convenience, but take into account that the array may be really huge.
 
 =back
-
 
 =head2 permutations(\@data)
 
@@ -308,6 +311,60 @@ Algorithm::Combinatorics exports nothing by default. Each of the subroutines can
 and the tag C<all> exports them all:
 
     use Algorithm::Combinatorics qw(:all);
+
+
+=head1 DIAGNOSTICS
+
+=head2 Warnings
+
+=over
+
+=item Useless use of %s in void context
+
+A subroutine was called in void context.
+
+=back
+
+=head2 Errors
+
+=over
+
+=item Missing parameter data
+
+A subroutine was called with no parameters.
+
+=item Missing parameter k
+
+A subroutine that requires a second parameter k was called without one.
+
+=item Parameter data is not an arrayref
+
+The first parameter is not an arrayref (tested with C<reftype()> from L<Scalar::Util>.)
+
+=item Parameter data cannot be empty
+
+A subroutine was called with an empty array of data.
+
+=item Parameter k must be greater than or equal to 1
+
+A subroutine was called with a value for k less than 1.
+
+Strickly speaking k could be 0. There is one variation of {1, 2, 3} with length 0, namely the empty list. But I find this corner case of no practical use and interferes with the usage of iterators. I would expect them to return lists, not (or in addition to) arrayrefs. Since assigning an empty list to an array in scalar context evaluates to false, the mandatory iteration is not possible.
+
+The choice has been to rule k = 0 out.
+
+=item Parameter k is greater than the length of data
+
+A subroutine that computes something where k has to be less than or equal to the size
+of data was called with a k that didn't satisfy such constraint.
+
+=back
+
+
+=head1 DEPENDENCIES
+
+Algorithm::Combinatorics uses L<Test::More> for testing,
+L<Scalar::Util> for C<reftype()>, and L<Inline::C> for XS.
 
 =head1 SEE ALSO
 

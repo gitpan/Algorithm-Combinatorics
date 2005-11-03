@@ -1,5 +1,15 @@
 Revision history for Algorithm-Combinatorics
 
-0.01    Date/time
-        First version, released on an unsuspecting world.
+0.02  November 3 2005
+
+    * README revised
+    * DEPENDENCIES added to POD
+    * DIAGNOSTICS added to POD
+    * VERSION added to POD
+    * Added some code documentation
+    * Minor tweaks on the XS code
+
+0.01  November 2 2005
+
+    * First version, released on an unsuspecting world.
 
