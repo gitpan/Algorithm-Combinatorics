@@ -1,0 +1,16 @@
+Changes
+MANIFEST
+META.yml # Will be created by "make dist"
+Makefile.PL
+README
+lib/Algorithm/Combinatorics.pm
+lib/Algorithm/Combinatorics/C.pm
+lib/Algorithm/Combinatorics/Iterator.pm
+t/00-load.t
+t/01-combinations.t
+t/02-combinations_with_repetition.t
+t/03-variations.t
+t/04-variations_with_repetition.t
+t/05-permutations.t
+t/pod-coverage.t
+t/pod.t
