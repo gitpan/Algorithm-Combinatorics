@@ -1,5 +1,3 @@
-# -*- mode: C -*-
-
 package Algorithm::Combinatorics::C;
 
 use Inline C => <<'END_OF_C_CODE';
@@ -12,11 +10,11 @@ use Inline C => <<'END_OF_C_CODE';
  * on that array the corresponding slice of data is copied into out.
  *
  * All the subroutines return -1 when there are no further tuples, or
- * the index of the element that was updated. I leave this a bit ambiguous
- * on purpose because by now we are only using == -1 and the contract may
- * change in future versions.
+ * the index of the element that was updated otherwise. I leave this a bit
+ * ambiguous on purpose because by now we are only using == -1 and the
+ * contract may change in future versions.
  *
- * As of this version variations() maintain a private hash table to be
+ * As of this version variations() maintains a private hash table to be
  * able to keep track of the currently used indices, that is, the elements
  * of the indices array. This is used to be able to check efficiently whether
  * they are free to jump over them otherwise.

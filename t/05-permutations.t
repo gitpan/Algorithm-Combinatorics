@@ -1,14 +1,17 @@
-# -*- mode: CPerl -*-
-
-use Algorithm::Combinatorics qw(permutations);
-
 use strict;
 use warnings;
 
+use FindBin qw($Bin);
+use lib $Bin;
+
 use Test::More qw(no_plan);
 
-my (@result, @expected, $iter);
+use Algorithm::Combinatorics qw(permutations);
+use Tester;
 
+my $tester = Tester->__new(\&permutations);
+
+my (@result, @expected);
 
 # ---------------------------------------------------------------------
 
@@ -18,23 +21,15 @@ ok($@, '');
 eval { permutations(0) };
 ok($@, '');
 
-eval { permutations([]) };
-ok($@, '');
+# ---------------------------------------------------------------------
 
+@expected = ([]);
+$tester->__test(\@expected, []);
 
 # ---------------------------------------------------------------------
 
 @expected = (["foo"]);
-@result = ();
-$iter = permutations(["foo"]);
-while (my @c = $iter->next) {
-    push @result, [@c];
-}
-is_deeply(\@expected, \@result, "");
-
-@result = permutations(["foo"]);
-is_deeply(\@expected, \@result, "");
-
+$tester->__test(\@expected, ["foo"]);
 
 # ---------------------------------------------------------------------
 
@@ -42,15 +37,7 @@ is_deeply(\@expected, \@result, "");
     ["foo", "bar"],
     ["bar", "foo"],
 );
-@result = ();
-$iter = permutations(["foo", "bar"]);
-while (my @c = $iter->next) {
-    push @result, [@c];
-}
-is_deeply(\@expected, \@result, "");
-
-@result = permutations(["foo", "bar"]);
-is_deeply(\@expected, \@result, "");
+$tester->__test(\@expected, ["foo", "bar"]);
 
 # ---------------------------------------------------------------------
 
@@ -62,24 +49,14 @@ is_deeply(\@expected, \@result, "");
     ["baz", "foo", "bar"],
     ["baz", "bar", "foo"],
 );
-@result = ();
-$iter = permutations(["foo", "bar", "baz"]);
-while (my @c = $iter->next) {
-    push @result, [@c];
-}
-is_deeply(\@expected, \@result, "");
-
-@result = permutations(["foo", "bar", "baz"]);
-is_deeply(\@expected, \@result, "");
-
+$tester->__test(\@expected, ["foo", "bar", "baz"]);
 
 # ----------------------------------------------------------------------
 
 # n!
 my $ncomb = 0;
-$iter = permutations([1..7]);
-while (my @c = $iter->next) {
+my $iter = permutations([1..8]);
+while (my $c = $iter->next) {
     ++$ncomb;
 }
-is($ncomb, 5040, "");
-
+is($ncomb, 40320, "");

@@ -1,5 +1,19 @@
 Revision history for Algorithm-Combinatorics
 
+0.05  November 4 2005
+
+    * Rewrote the test suite, and relevant documentation
+    * Added the helper module t/Tester.pm
+      to factor out a common test code pattern
+    * If k is "out of natural range"" the empty set is returned
+      and a warning is issued if warnings are enabled
+    * The iterators return an arrayref, and the implementation
+      was revised accordingly to be mathematically correct in
+      edge-cases and more forgiving
+    * I can't stand that DIAGNOSTICS::Errors section, so many
+      croaks on boundary conditions are so unperlish! The module
+      has just a couple of days so I am on time to fix this
+
 0.02  November 3 2005
 
     * README revised

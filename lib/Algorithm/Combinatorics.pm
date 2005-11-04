@@ -1,9 +1,8 @@
 package Algorithm::Combinatorics;
 
 use strict;
-use warnings;
 
-our $VERSION = '0.02';
+our $VERSION = '0.05';
 
 use Carp;
 use Scalar::Util qw(reftype);
@@ -24,63 +23,99 @@ use Algorithm::Combinatorics::Iterator;
 
 sub combinations {
     my ($data, $k) = @_;
-	__check_params_le($data, $k);
+	__check_params($data, $k);
+
+	if ($k < 0) {
+		carp("Parameter k is negative");
+		return __contextualize(__null_iter());
+	} elsif ($k > @$data) {
+		carp("Parameter k is greater than the size of data");
+		return __contextualize(__null_iter());
+	}
+	
+	return __contextualize(__once_iter()) if $k == 0;
 
     my @indices = (0..($k-2), $k-2);
     my @out     = @{$data}[0..($k-1)];
 
     my $iter = Algorithm::Combinatorics::Iterator->new(sub {
-        __next_combination(\@indices, $data, \@out) == -1 ? () : @out;
+        __next_combination(\@indices, $data, \@out) == -1 ? undef : [ @out ];
     });
 
-    return __wanted($iter);
+    return __contextualize($iter);
 }
 
 sub combinations_with_repetition {
     my ($data, $k) = @_;
 	__check_params($data, $k);
-
+	
+	if ($k < 0) {
+		carp("Parameter k is negative");
+		return __contextualize(__null_iter());
+	}
+	
+	return __contextualize(__once_iter()) if $k == 0;
+	
     my @indices = ((0) x ($k-1), -1);
     my @out     = ($data->[0]) x $k;
 
     my $iter = Algorithm::Combinatorics::Iterator->new(sub {
-        __next_combination_with_repetition(\@indices, $data, \@out) == -1 ? () : @out;
+        __next_combination_with_repetition(\@indices, $data, \@out) == -1 ? undef : [ @out ];
     });
 
-    return __wanted($iter);
+    return __contextualize($iter);
 }
 
 sub variations {
     my ($data, $k) = @_;
-	__check_params_le($data, $k);
+	__check_params($data, $k);
+
+	if ($k < 0) {
+		carp("Parameter k is negative");
+		return __contextualize(__null_iter());
+	} elsif ($k > @$data) {
+		carp("Parameter k is greater than the size of data");
+		return __contextualize(__null_iter());
+	}
+
+	return __contextualize(__once_iter()) if $k == 0;
 
     my @indices = (0..($k-2), -1);
     my %used    = map { $_ => $_ } @indices[0..($k-2)];
     my @out     = @{$data}[0..($k-1)];
 
     my $iter = Algorithm::Combinatorics::Iterator->new(sub {
-        __next_variation(\%used, \@indices, $data, \@out) == -1 ? () : @out;
+        __next_variation(\%used, \@indices, $data, \@out) == -1 ? undef : [ @out ];
     });
 
-    return __wanted($iter);
+    return __contextualize($iter);
 }
 
 sub variations_with_repetition {
     my ($data, $k) = @_;
 	__check_params($data, $k);
+
+	if ($k < 0) {
+		carp("Parameter k is negative");
+		return __contextualize(__null_iter());
+	}
 	
+	return __contextualize(__once_iter()) if $k == 0;
+
     my @indices = ((0) x ($k-1), -1);
     my @out     = ($data->[0]) x $k;
 
     my $iter = Algorithm::Combinatorics::Iterator->new(sub {
-        __next_variation_with_repetition(\@indices, $data, \@out) == -1 ? () : @out;
+        __next_variation_with_repetition(\@indices, $data, \@out) == -1 ? undef : [ @out ];
     });
 
-    return __wanted($iter);
+    return __contextualize($iter);
 }
 
 sub permutations {
     my ($data) = @_;
+	# we are going to call scalar @$data before we now $data is an arrayref
+	no warnings;
     return variations($data, scalar @$data);
 }
 
@@ -96,33 +131,17 @@ sub __check_params {
 	my $type = reftype $data;
 	if (!defined($type) || $type ne "ARRAY") {
 		croak("Parameter data is not an arrayref");
-	}
-	if (@$data == 0) {
-		croak("Parameter data cannot be empty");
-	}
-	if ($k < 1) {
-		croak("Parameter k must be greater than or equal to 1");
-	}
-		
+	}		
 }
 
-sub __check_params_le {
-	&__check_params;
-	my ($data, $k) = @_;
-	if ($k > @$data) {
-		croak('Parameter k is greater than the length of data');
-	}
-}
-
-
-sub __wanted {
+sub __contextualize {
     my $iter = shift;
     my $w = wantarray;
     if (defined $w) {
         if ($w) {
             my @result = ();
-            while (my @c = $iter->next) {
-                push @result, [ @c ];
+            while (my $c = $iter->next) {
+                push @result, $c;
             }
             return @result;
         } else {
@@ -132,6 +151,21 @@ sub __wanted {
         my $sub = (caller(1))[3];
         carp("Useless use of $sub in void context");
     }
+}
+
+sub __null_iter {
+	return Algorithm::Combinatorics::Iterator->new(sub { return });
+}
+
+sub __once_iter {
+	my $once = 1;
+	Algorithm::Combinatorics::Iterator->new(sub {
+        if ($once) {
+		    $once = 0;
+		    return [];
+	    }
+	    return;
+	});
 }
 
 1; # End of Algorithm::Combinatorics
@@ -146,11 +180,11 @@ Algorithm::Combinatorics - Efficient generation of combinatorial sequences
 
  use Algorithm::Combinatorics qw(permutations);
 
- my @data = ("a", "b", "c");
+ my @data = qw(a b c);
 
  # scalar context gives an iterator
  my $iter = permutations(\@data);
- while (my @p = $iter->next) {
+ while (my $p = $iter->next) {
      # ...
  }
 
@@ -159,7 +193,7 @@ Algorithm::Combinatorics - Efficient generation of combinatorial sequences
 
 =head1 VERSION
 
-This documentation refers to Algorithm::Combinatorics version 0.02.
+This documentation refers to Algorithm::Combinatorics version 0.05.
 
 =head1 DESCRIPTION
 
@@ -196,11 +230,22 @@ All of them are context-sensitive:
 
 =item * 
 
-In scalar context the subroutines return an iterator that responds to the C<next> method. Using this object you can iterate over the sequence of tuples one by one. Since no recursion and no stacks are used the memory usage is minimal. We can iterate over sequences of virtually any size.
+In scalar context the subroutines return an iterator that responds to the C<next()> method. Using this object you can iterate over the sequence of tuples one by one this way:
+
+    my $iter = combinations(\@data, $k);
+    while (my $c = $iter->next) {
+        # ...
+    }
+
+The C<next()> method returns an arrayref to the next tuple, if any, or C<undef> if the sequence is exhausted.
+
+Since no recursion and no stacks are used the memory usage is minimal. Thus, we can iterate over sequences of virtually any size.
 
 =item * 
 
-In list context the subroutines slurp the entire set of tuples. This behaviour is offered for convenience, but take into account that the array may be really huge.
+In list context the subroutines slurp the entire set of tuples. This behaviour is offered for convenience, but take into account that the resulting array may be really huge:
+
+    my @all_combinations = combinations(\@data, $k);
 
 =back
 
@@ -228,7 +273,7 @@ The variations of length C<$k> of C<@data> are all the tuples of length C<$k> co
 
 For this to make sense, C<$k> has to be less than or equal to the length of C<@data>. 
 
-Note that the
+Note that
 
     permutations(\@data);
 
@@ -302,6 +347,29 @@ Note that C<$k> can be greater than the length of C<@data>. For example, for C<@
     (3, 3, 3, 3)
 
 
+=head1 CORNER CASES
+
+Since version 0.05 subroutines are more forgiving for unsual values of C<$k>:
+
+=over 4
+
+=item *
+
+If C<$k> is less than zero no tuple exists. Thus, the very first call to the iterator's C<next()> method returns C<undef>, and a call in list context returns the empty list. (See L</DIAGNOSTICS>.)
+
+=item *
+
+If C<$k> is zero we have one tuple, the empty tuple. This is a different case than the former: when C<$k> is negative there are no tuples at all, when C<$k> is zero there is a tuple. The rationale for this behaviour is the same rationale for (n choose 0) := 1: the empty tuple is a subset of data with C<$k = 0> elements, so it complies with the definition.
+
+=item *
+
+If C<$k> is greater than the size of C<@data>, and we are calling a subroutine that does not generate tuples with repetitions, no tuple exists. Thus, the very first call to the iterator's C<next()> method returns C<undef>, and a call in list context returns the empty list. (See L</DIAGNOSTICS>.)
+
+=back
+
+In addition, since 0.05 empty C<@data>s are supported as well.
+
+
 =head1 EXPORT
 
 Algorithm::Combinatorics exports nothing by default. Each of the subroutines can be exported on demand, as in
@@ -317,53 +385,47 @@ and the tag C<all> exports them all:
 
 =head2 Warnings
 
+The following warnings may be issued:
+
 =over
 
 =item Useless use of %s in void context
 
 A subroutine was called in void context.
 
+=item Parameter k is negative
+
+A subroutine was called with a negative k.
+
+=item Parameter k is greater than the size of data
+
+A subroutine that does not generate tuples with repetitions was called with a k greater than the size of data.
+
 =back
 
 =head2 Errors
 
+The following errors may be thrown:
+
 =over
 
 =item Missing parameter data
-
+    
 A subroutine was called with no parameters.
 
 =item Missing parameter k
-
+    
 A subroutine that requires a second parameter k was called without one.
 
 =item Parameter data is not an arrayref
 
-The first parameter is not an arrayref (tested with C<reftype()> from L<Scalar::Util>.)
-
-=item Parameter data cannot be empty
-
-A subroutine was called with an empty array of data.
-
-=item Parameter k must be greater than or equal to 1
-
-A subroutine was called with a value for k less than 1.
-
-Strickly speaking k could be 0. There is one variation of {1, 2, 3} with length 0, namely the empty list. But I find this corner case of no practical use and interferes with the usage of iterators. I would expect them to return lists, not (or in addition to) arrayrefs. Since assigning an empty list to an array in scalar context evaluates to false, the mandatory iteration is not possible.
-
-The choice has been to rule k = 0 out.
-
-=item Parameter k is greater than the length of data
-
-A subroutine that computes something where k has to be less than or equal to the size
-of data was called with a k that didn't satisfy such constraint.
+The first parameter is not an arrayref (tested with "reftype()" from Scalar::Util.)
 
 =back
 
-
 =head1 DEPENDENCIES
 
-Algorithm::Combinatorics uses L<Test::More> for testing,
+Algorithm::Combinatorics uses L<Test::More> and L<FindBin> for testing,
 L<Scalar::Util> for C<reftype()>, and L<Inline::C> for XS.
 
 =head1 SEE ALSO

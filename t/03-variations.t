@@ -1,14 +1,17 @@
-# -*- mode: CPerl -*-
-
-use Algorithm::Combinatorics qw(variations);
-
 use strict;
 use warnings;
 
+use FindBin qw($Bin);
+use lib $Bin;
+
 use Test::More qw(no_plan);
 
-my (@result, @expected, $iter);
+use Algorithm::Combinatorics qw(variations);
+use Tester;
 
+my $tester = Tester->__new(\&variations);
+
+my (@result, @expected);
 
 # ---------------------------------------------------------------------
 
@@ -21,43 +24,23 @@ ok($@, '');
 eval { variations(0, 0) };
 ok($@, '');
 
-eval { variations([1], 0) };
-ok($@, '');
+# ---------------------------------------------------------------------
 
-eval { variations([1], 2) };
-ok($@, '');
+@expected = ([]);
+$tester->__test(\@expected, [], 0);
 
-eval { variations([], 0) };
-ok($@, '');
-
+@expected = ([]);
+$tester->__test(\@expected, [1, 2], 0);
 
 # ---------------------------------------------------------------------
 
 @expected = (["foo"]);
-@result = ();
-$iter = variations(["foo"], 1);
-while (my @c = $iter->next) {
-    push @result, [@c];
-}
-is_deeply(\@expected, \@result, "");
-
-@result = variations(["foo"], 1);
-is_deeply(\@expected, \@result, "");
-
+$tester->__test(\@expected, ["foo"], 1);
 
 # ---------------------------------------------------------------------
 
 @expected = (["foo"], ["bar"]);
-@result = ();
-$iter = variations(["foo", "bar"], 1);
-while (my @c = $iter->next) {
-    push @result, [@c];
-}
-is_deeply(\@expected, \@result, "");
-
-@result = variations(["foo", "bar"], 1);
-is_deeply(\@expected, \@result, "");
-
+$tester->__test(\@expected, ["foo", "bar"], 1);
 
 # ---------------------------------------------------------------------
 
@@ -65,16 +48,7 @@ is_deeply(\@expected, \@result, "");
     ["foo", "bar"],
     ["bar", "foo"],
 );
-@result = ();
-$iter = variations(["foo", "bar"], 2);
-while (my @c = $iter->next) {
-    push @result, [@c];
-}
-is_deeply(\@expected, \@result, "");
-
-@result = variations(["foo", "bar"], 2);
-is_deeply(\@expected, \@result, "");
-
+$tester->__test(\@expected, ["foo", "bar"], 2);
 
 # ---------------------------------------------------------------------
 
@@ -86,16 +60,7 @@ is_deeply(\@expected, \@result, "");
     ["baz", "foo"],
     ["baz", "bar"],
 );
-@result = ();
-$iter = variations(["foo", "bar", "baz"], 2);
-while (my @c = $iter->next) {
-    push @result, [@c];
-}
-is_deeply(\@expected, \@result, "");
-
-@result = variations(["foo", "bar", "baz"], 2);
-is_deeply(\@expected, \@result, "");
-
+$tester->__test(\@expected, ["foo", "bar", "baz"], 2);
 
 # ---------------------------------------------------------------------
 
@@ -128,24 +93,14 @@ is_deeply(\@expected, \@result, "");
     [3, 2, 0],
     [3, 2, 1],
 );
-@result = ();
-$iter = variations([0..3], 3);
-while (my @c = $iter->next) {
-    push @result, [@c];
-}
-is_deeply(\@expected, \@result, "");
-
-@result = variations([0..3], 3);
-is_deeply(\@expected, \@result, "");
-
+$tester->__test(\@expected, [0..3], 3);
 
 # ----------------------------------------------------------------------
 
 # n*(n-1)*(n-2)* ... *(n-p+1)
 my $ncomb = 0;
-$iter = variations([1..9], 5);
-while (my @c = $iter->next) {
+my $iter = variations([1..9], 5);
+while (my $c = $iter->next) {
     ++$ncomb;
 }
 is($ncomb, 15120, "");
-

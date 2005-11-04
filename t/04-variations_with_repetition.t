@@ -1,13 +1,17 @@
-# -*- mode: CPerl -*-
-
-use Algorithm::Combinatorics qw(variations_with_repetition);
-
 use strict;
 use warnings;
 
+use FindBin qw($Bin);
+use lib $Bin;
+
 use Test::More qw(no_plan);
 
-my (@result, @expected, $iter);
+use Algorithm::Combinatorics qw(variations_with_repetition);
+use Tester;
+
+my $tester = Tester->__new(\&variations_with_repetition);
+
+my (@result, @expected);
 
 # ---------------------------------------------------------------------
 
@@ -20,40 +24,23 @@ ok($@, '');
 eval { variations_with_repetition(0, 0) };
 ok($@, '');
 
-eval { variations_with_repetition([1], 0) };
-ok($@, '');
+# ---------------------------------------------------------------------
 
-eval { variation_with_repetition([], 0) };
-ok($@, '');
+@expected = ([]);
+$tester->__test(\@expected, [], 0);
 
+@expected = ([]);
+$tester->__test(\@expected, [1, 2], 0);
 
 # ---------------------------------------------------------------------
 
 @expected = (["foo"]);
-@result = ();
-$iter = variations_with_repetition(["foo"], 1);
-while (my @c = $iter->next) {
-    push @result, [@c];
-}
-is_deeply(\@expected, \@result, "");
-
-@result = variations_with_repetition(["foo"], 1);
-is_deeply(\@expected, \@result, "");
-
+$tester->__test(\@expected, ["foo"], 1);
 
 # ---------------------------------------------------------------------
 
 @expected = (["foo"], ["bar"]);
-@result = ();
-$iter = variations_with_repetition(["foo", "bar"], 1);
-while (my @c = $iter->next) {
-    push @result, [@c];
-}
-is_deeply(\@expected, \@result, "");
-
-@result = variations_with_repetition(["foo", "bar"], 1);
-is_deeply(\@expected, \@result, "");
-
+$tester->__test(\@expected, ["foo", "bar"], 1);
 
 # ---------------------------------------------------------------------
 
@@ -63,16 +50,7 @@ is_deeply(\@expected, \@result, "");
     ["bar", "foo"],
     ["bar", "bar"],
 );
-@result = ();
-$iter = variations_with_repetition(["foo", "bar"], 2);
-while (my @c = $iter->next) {
-    push @result, [@c];
-}
-is_deeply(\@expected, \@result, "");
-
-@result = variations_with_repetition(["foo", "bar"], 2);
-is_deeply(\@expected, \@result, "");
-
+$tester->__test(\@expected, ["foo", "bar"], 2);
 
 # ---------------------------------------------------------------------
 
@@ -86,16 +64,7 @@ is_deeply(\@expected, \@result, "");
     ["bar", "bar", "foo"],
     ["bar", "bar", "bar"],
 );
-@result = ();
-$iter = variations_with_repetition(["foo", "bar"], 3);
-while (my @c = $iter->next) {
-    push @result, [@c];
-}
-is_deeply(\@expected, \@result, "");
-
-@result = variations_with_repetition(["foo", "bar"], 3);
-is_deeply(\@expected, \@result, "");
-
+$tester->__test(\@expected, ["foo", "bar"], 3);
 
 # ---------------------------------------------------------------------
 
@@ -110,16 +79,7 @@ is_deeply(\@expected, \@result, "");
     ["baz", "bar"],
     ["baz", "baz"],
 );
-@result = ();
-$iter = variations_with_repetition(["foo", "bar", "baz"], 2);
-while (my @c = $iter->next) {
-    push @result, [@c];
-}
-is_deeply(\@expected, \@result, "");
-
-@result = variations_with_repetition(["foo", "bar", "baz"], 2);
-is_deeply(\@expected, \@result, "");
-
+$tester->__test(\@expected, ["foo", "bar", "baz"], 2);
 
 # ---------------------------------------------------------------------
 
@@ -193,30 +153,21 @@ is_deeply(\@expected, \@result, "");
     [3, 3, 3],
 
 );
-@result = ();
-$iter = variations_with_repetition([0..3], 3);
-while (my @c = $iter->next) {
-    push @result, [@c];
-}
-is_deeply(\@expected, \@result, "");
-
-@result = variations_with_repetition([0..3], 3);
-is_deeply(\@expected, \@result, "");
-
+$tester->__test(\@expected, [0..3], 3);
 
 # ----------------------------------------------------------------------
 
 # n^k
 my $ncomb = 0;
-$iter = variations_with_repetition([1..7], 5);
-while (my @c = $iter->next) {
+my $iter = variations_with_repetition([1..7], 5);
+while (my $c = $iter->next) {
     ++$ncomb;
 }
 is($ncomb, 16807, "");
 
 $ncomb = 0;
 $iter = variations_with_repetition([1..4], 7);
-while (my @c = $iter->next) {
+while (my $c = $iter->next) {
     ++$ncomb;
 }
 is($ncomb, 16384, "");

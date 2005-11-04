@@ -1,13 +1,17 @@
-# -*- mode: CPerl -*-
-
-use Algorithm::Combinatorics qw(combinations);
-
 use strict;
 use warnings;
 
+use FindBin qw($Bin);
+use lib $Bin;
+
 use Test::More qw(no_plan);
 
-my (@result, @expected, $iter);
+use Algorithm::Combinatorics qw(combinations);
+use Tester;
+
+my $tester = Tester->__new(\&combinations);
+
+my (@result, @expected);
 
 # ---------------------------------------------------------------------
 
@@ -20,56 +24,28 @@ ok($@, '');
 eval { combinations(0, 0) };
 ok($@, '');
 
-eval { combinations([1], 0) };
-ok($@, '');
+# ---------------------------------------------------------------------
 
-eval { combinations([], 0) };
-ok($@, '');
+@expected = ([]);
+$tester->__test(\@expected, [], 0);
 
-eval { combinations([1], 2) };
-ok($@, '');
-
+@expected = ([]);
+$tester->__test(\@expected, [1, 2], 0);
 
 # ---------------------------------------------------------------------
 
 @expected = (["foo"]);
-@result = ();
-$iter = combinations(["foo"], 1);
-while (my @c = $iter->next) {
-    push @result, [@c];
-}
-is_deeply(\@expected, \@result, "");
-
-@result = combinations(["foo"], 1);
-is_deeply(\@expected, \@result, "");
+$tester->__test(\@expected, ["foo"], 1);
 
 # ---------------------------------------------------------------------
 
 @expected = (["foo"], ["bar"]);
-@result = ();
-$iter = combinations(["foo", "bar"], 1);
-while (my @c = $iter->next) {
-    push @result, [@c];
-}
-is_deeply(\@expected, \@result, "");
-
-@result = combinations(["foo", "bar"], 1);
-is_deeply(\@expected, \@result, "");
-
+$tester->__test(\@expected, ["foo", "bar"], 1);
 
 # ---------------------------------------------------------------------
 
 @expected = (["foo", "bar"]);
-@result = ();
-$iter = combinations(["foo", "bar"], 2);
-while (my @c = $iter->next) {
-    push @result, [@c];
-}
-is_deeply(\@expected, \@result, "");
-
-@result = combinations(["foo", "bar"], 2);
-is_deeply(\@expected, \@result, "");
-
+$tester->__test(\@expected, ["foo", "bar"], 2);
 
 # ---------------------------------------------------------------------
 
@@ -78,17 +54,7 @@ is_deeply(\@expected, \@result, "");
     ["foo", "baz"],
     ["bar", "baz"],
 );
-@result = ();
-$iter = combinations(["foo", "bar", "baz"], 2);
-while (my @c = $iter->next) {
-    push @result, [@c];
-}
-
-
-is_deeply(\@expected, \@result, "");
-
-@result = combinations(["foo", "bar", "baz"], 2);
-is_deeply(\@expected, \@result, "");
+$tester->__test(\@expected, ["foo", "bar", "baz"], 2);
 
 # ---------------------------------------------------------------------
 
@@ -98,16 +64,7 @@ is_deeply(\@expected, \@result, "");
     ["foo", "baz", "zoo"],
     ["bar", "baz", "zoo"],
 );
-@result = ();
-$iter = combinations(["foo", "bar", "baz", "zoo"], 3);
-while (my @c = $iter->next) {
-    push @result, [@c];
-}
-is_deeply(\@expected, \@result, "");
-
-@result = combinations(["foo", "bar", "baz", "zoo"], 3);
-is_deeply(\@expected, \@result, "");
-
+$tester->__test(\@expected, ["foo", "bar", "baz", "zoo"], 3);
 
 # ----------------------------------------------------------------------
 
@@ -123,22 +80,13 @@ is_deeply(\@expected, \@result, "");
     [2, 4, 5],
     [3, 4, 5],
 );
-@result = ();
-$iter = combinations([1..5], 3);
-while (my @c = $iter->next) {
-    push @result, [@c];
-}
-is_deeply(\@expected, \@result, "");
-
-@result = combinations([1..5], 3);
-is_deeply(\@expected, \@result, "");
-
+$tester->__test(\@expected, [1..5], 3);
 
 # ----------------------------------------------------------------------
 
 my $ncomb = 0;
-$iter = combinations([1..20], 15);
-while (my @c = $iter->next) {
+my $iter = combinations([1..20], 15);
+while (my $c = $iter->next) {
     ++$ncomb;
 }
 is($ncomb, 15504, "");

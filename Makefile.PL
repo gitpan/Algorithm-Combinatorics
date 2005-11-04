@@ -9,6 +9,7 @@ WriteMakefile(
     ABSTRACT_FROM       => 'lib/Algorithm/Combinatorics.pm',
     PL_FILES            => {},
     PREREQ_PM => {
+        'FindBin'      => 0,
         'Test::More'   => 0,
         'Scalar::Util' => 0,
         'Inline::C'    => 0,

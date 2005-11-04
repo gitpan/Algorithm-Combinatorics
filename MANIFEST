@@ -6,6 +6,7 @@ README
 lib/Algorithm/Combinatorics.pm
 lib/Algorithm/Combinatorics/C.pm
 lib/Algorithm/Combinatorics/Iterator.pm
+t/Tester.pm
 t/00-load.t
 t/01-combinations.t
 t/02-combinations_with_repetition.t

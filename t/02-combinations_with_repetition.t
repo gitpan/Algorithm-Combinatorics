@@ -1,13 +1,17 @@
-# -*- mode: CPerl -*-
-
-use Algorithm::Combinatorics qw(combinations_with_repetition);
-
 use strict;
+use warnings;
+
+use FindBin qw($Bin);
+use lib $Bin;
 
 use Test::More qw(no_plan);
 
-my (@result, @expected, $iter);
+use Algorithm::Combinatorics qw(combinations_with_repetition);
+use Tester;
 
+my $tester = Tester->__new(\&combinations_with_repetition);
+
+my (@result, @expected);
 
 # ---------------------------------------------------------------------
 
@@ -20,40 +24,23 @@ ok($@, '');
 eval { combinations_with_repetition(0, 0) };
 ok($@, '');
 
-eval { combinations_with_repetition([1], 0) };
-ok($@, '');
+# ---------------------------------------------------------------------
 
-eval { combinations_with_repetition([], 0) };
-ok($@, '');
+@expected = ([]);
+$tester->__test(\@expected, [], 0);
 
+@expected = ([]);
+$tester->__test(\@expected, [1, 2], 0);
 
 # ---------------------------------------------------------------------
 
 @expected = (["foo"]);
-@result = ();
-$iter = combinations_with_repetition(["foo"], 1);
-while (my @c = $iter->next) {
-    push @result, [@c];
-}
-is_deeply(\@expected, \@result, "");
-
-@result = combinations_with_repetition(["foo"], 1);
-is_deeply(\@expected, \@result, "");
-
+$tester->__test(\@expected, ["foo"], 1);
 
 # ---------------------------------------------------------------------
 
 @expected = (["foo"], ["bar"]);
-@result = ();
-$iter = combinations_with_repetition(["foo", "bar"], 1);
-while (my @c = $iter->next) {
-    push @result, [@c];
-}
-is_deeply(\@expected, \@result, "");
-
-@result = combinations_with_repetition(["foo", "bar"], 1);
-is_deeply(\@expected, \@result, "");
-
+$tester->__test(\@expected, ["foo", "bar"], 1);
 
 # ---------------------------------------------------------------------
 
@@ -62,16 +49,7 @@ is_deeply(\@expected, \@result, "");
     ["foo", "bar"],
     ["bar", "bar"],
 );
-@result = ();
-$iter = combinations_with_repetition(["foo", "bar"], 2);
-while (my @c = $iter->next) {
-    push @result, [@c];
-}
-is_deeply(\@expected, \@result, "");
-
-@result = combinations_with_repetition(["foo", "bar"], 2);
-is_deeply(\@expected, \@result, "");
-
+$tester->__test(\@expected, ["foo", "bar"], 2);
 
 # ---------------------------------------------------------------------
 
@@ -81,16 +59,7 @@ is_deeply(\@expected, \@result, "");
     ["foo", "bar", "bar"],
     ["bar", "bar", "bar"],
 );
-@result = ();
-$iter = combinations_with_repetition(["foo", "bar"], 3);
-while (my @c = $iter->next) {
-    push @result, [@c];
-}
-is_deeply(\@expected, \@result, "");
-
-@result = combinations_with_repetition(["foo", "bar"], 3);
-is_deeply(\@expected, \@result, "");
-
+$tester->__test(\@expected, ["foo", "bar"], 3);
 
 # ---------------------------------------------------------------------
 
@@ -102,18 +71,7 @@ is_deeply(\@expected, \@result, "");
     ["bar", "baz"],
     ["baz", "baz"],
 );
-@result = ();
-$iter = combinations_with_repetition(["foo", "bar", "baz"], 2);
-while (my @c = $iter->next) {
-    push @result, [@c];
-}
-
-
-is_deeply(\@expected, \@result, "");
-
-@result = combinations_with_repetition(["foo", "bar", "baz"], 2);
-is_deeply(\@expected, \@result, "");
-
+$tester->__test(\@expected, ["foo", "bar", "baz"], 2);
 
 # ---------------------------------------------------------------------
 
@@ -139,30 +97,21 @@ is_deeply(\@expected, \@result, "");
     [2, 3, 3],
     [3, 3, 3],
 );
-@result = ();
-$iter = combinations_with_repetition([0..3], 3);
-while (my @c = $iter->next) {
-    push @result, [@c];
-}
-is_deeply(\@expected, \@result, "");
-
-@result = combinations_with_repetition([0..3], 3);
-is_deeply(\@expected, \@result, "");
-
+$tester->__test(\@expected, [0..3], 3);
 
 # ----------------------------------------------------------------------
 
 # n+k-1 over k
 my $ncomb = 0;
-$iter = combinations_with_repetition([1..15], 5);
-while (my @c = $iter->next) {
+my $iter = combinations_with_repetition([1..15], 5);
+while (my $c = $iter->next) {
     ++$ncomb;
 }
 is($ncomb, 11628, "");
 
 $ncomb = 0;
 $iter = combinations_with_repetition([1..7], 11);
-while (my @c = $iter->next) {
+while (my $c = $iter->next) {
     ++$ncomb;
 }
 is($ncomb, 12376, "");
