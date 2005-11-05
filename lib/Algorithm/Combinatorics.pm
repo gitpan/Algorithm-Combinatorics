@@ -2,7 +2,7 @@ package Algorithm::Combinatorics;
 
 use strict;
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 use Carp;
 use Scalar::Util qw(reftype);
@@ -14,6 +14,7 @@ our @EXPORT_OK = qw(
     variations
     variations_with_repetition
     permutations
+    permutations_fast
 );
 
 our %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
@@ -113,10 +114,27 @@ sub variations_with_repetition {
 }
 
 sub permutations {
-    my ($data) = @_;
-	# we are going to call scalar @$data before we now $data is an arrayref
-	no warnings;
-    return variations($data, scalar @$data);
+	my ($data) = @_;
+	__check_params($data, 0);	
+
+	return __contextualize(__once_iter()) if @$data == 0;
+
+    my @indices = 0..(@$data-1);
+    my @out     = @$data;
+	
+    my $iter = do {
+		my $first_returned = 0;
+	    Algorithm::Combinatorics::Iterator->new(sub {
+		    if (not $first_returned) {
+			    $first_returned = 1;
+			    return [ @out ];
+		    } else {
+                __next_permutation(\@indices, $data, \@out) == -1 ? undef : [ @out ];
+            }
+		});
+    };
+
+    return __contextualize($iter);	
 }
 
 sub __check_params {
@@ -193,7 +211,7 @@ Algorithm::Combinatorics - Efficient generation of combinatorial sequences
 
 =head1 VERSION
 
-This documentation refers to Algorithm::Combinatorics version 0.05.
+This documentation refers to Algorithm::Combinatorics version 0.06.
 
 =head1 DESCRIPTION
 

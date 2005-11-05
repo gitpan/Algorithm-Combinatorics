@@ -1,5 +1,9 @@
 Revision history for Algorithm-Combinatorics
 
+0.06 November 5 2005
+
+    * permutations() is about 3-4 times faster
+
 0.05  November 4 2005
 
     * Rewrote the test suite, and relevant documentation

@@ -9,10 +9,7 @@ use Inline C => <<'END_OF_C_CODE';
  * that is guaranteed to hold IVs. Once the next tuple has been computed
  * on that array the corresponding slice of data is copied into out.
  *
- * All the subroutines return -1 when there are no further tuples, or
- * the index of the element that was updated otherwise. I leave this a bit
- * ambiguous on purpose because by now we are only using == -1 and the
- * contract may change in future versions.
+ * All the subroutines return -1 when there are no further tuples.
  *
  * As of this version variations() maintains a private hash table to be
  * able to keep track of the currently used indices, that is, the elements
@@ -23,7 +20,6 @@ use Inline C => <<'END_OF_C_CODE';
 
 
 #define UPDATE(av, i, n) (sv_setiv(*av_fetch(av, i, 0), n))
-
 
 int __next_combination(AV* indices, AV* data, AV* out)
 {
@@ -136,6 +132,42 @@ int __next_variation_with_repetition(AV* indices, AV* data, AV* out)
     return -1;
 }
 
+/* Adapted from http://www.scielo.br/scielo.php?pid=S0104-65002001000200009&script=sci_arttext&tlng=en */
+int __next_permutation(AV* indices, AV* data, AV* out)
+{
+	int i, j, k;
+	I32 max_n = av_len(data);
+	
+	i = max_n;
+	while (i > 0 && SvIVX(*av_fetch(indices, i-1, 0)) > SvIVX(*av_fetch(indices, i, 0)))
+		--i;
+	
+	if (i == 0)
+		return -1;
+
+    j = i + 1;	
+	while (j <= max_n && SvIVX(*av_fetch(indices, i-1, 0)) < SvIVX(*av_fetch(indices, j, 0)))
+		++j;
+	
+	__swap(indices, i-1, j-1);
+	
+	k = (max_n-i)/2;
+	for (j = 0; j <= k; j++)
+		__swap(indices, i+j, max_n-j);
+	
+	__slice_and_copy(i-1, indices, data, out);
+	
+	return 1;
+}
+
+void __swap(AV* av, int i, int j)
+{
+	SV* svi = *av_fetch(av, i, 0);
+	SV* svj = *av_fetch(av, j, 0);
+	IV  tmp = SvIVX(svi);
+	sv_setiv(svi, SvIVX(svj));
+	sv_setiv(svj, tmp);
+}
 
 void __slice_and_copy(int from, AV* indices, AV* data, AV* out)
 {
@@ -159,6 +191,7 @@ our @EXPORT = qw(
     __next_combination_with_repetition
     __next_variation
     __next_variation_with_repetition
+    __next_permutation
 );
 
 1;
