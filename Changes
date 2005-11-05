@@ -1,5 +1,14 @@
 Revision history for Algorithm-Combinatorics
 
+0.07 November 5 2005
+
+    * Documented the corresponding formulas
+    * Slicing is done now in Perl. The code is much more clear
+      and in my benchmarks no significant difference is measured
+    * The iterator now may receive an initial arrayref
+      (this is private implementation), which simplifies the set
+      up of the iterator when the first tuple is known
+
 0.06 November 5 2005
 
     * permutations() is about 3-4 times faster
@@ -10,7 +19,7 @@ Revision history for Algorithm-Combinatorics
     * Added the helper module t/Tester.pm
       to factor out a common test code pattern
     * If k is "out of natural range"" the empty set is returned
-      and a warning is issued if warnings are enabled
+      and a warning is issued
     * The iterators return an arrayref, and the implementation
       was revised accordingly to be mathematically correct in
       edge-cases and more forgiving

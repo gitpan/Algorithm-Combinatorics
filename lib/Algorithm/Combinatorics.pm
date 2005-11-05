@@ -2,7 +2,7 @@ package Algorithm::Combinatorics;
 
 use strict;
 
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 
 use Carp;
 use Scalar::Util qw(reftype);
@@ -10,11 +10,11 @@ use Exporter;
 use base 'Exporter';
 our @EXPORT_OK = qw(
     combinations
+    combinations_new
     combinations_with_repetition
     variations
     variations_with_repetition
     permutations
-    permutations_fast
 );
 
 our %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
@@ -36,12 +36,10 @@ sub combinations {
 	
 	return __contextualize(__once_iter()) if $k == 0;
 
-    my @indices = (0..($k-2), $k-2);
-    my @out     = @{$data}[0..($k-1)];
-
+    my @indices = 0..($k-1);
     my $iter = Algorithm::Combinatorics::Iterator->new(sub {
-        __next_combination(\@indices, $data, \@out) == -1 ? undef : [ @out ];
-    });
+        __next_combination(\@indices, @$data-1) == -1 ? undef : [ @{$data}[@indices] ];
+    }, [ @{$data}[@indices] ]);
 
     return __contextualize($iter);
 }
@@ -57,12 +55,10 @@ sub combinations_with_repetition {
 	
 	return __contextualize(__once_iter()) if $k == 0;
 	
-    my @indices = ((0) x ($k-1), -1);
-    my @out     = ($data->[0]) x $k;
-
+    my @indices = (0) x $k;
     my $iter = Algorithm::Combinatorics::Iterator->new(sub {
-        __next_combination_with_repetition(\@indices, $data, \@out) == -1 ? undef : [ @out ];
-    });
+        __next_combination_with_repetition(\@indices, @$data-1) == -1 ? undef : [ @{$data}[@indices] ];
+    }, [ @{$data}[@indices] ]);
 
     return __contextualize($iter);
 }
@@ -81,13 +77,11 @@ sub variations {
 
 	return __contextualize(__once_iter()) if $k == 0;
 
-    my @indices = (0..($k-2), -1);
-    my %used    = map { $_ => $_ } @indices[0..($k-2)];
-    my @out     = @{$data}[0..($k-1)];
-
+    my @indices = 0..($k-1);
+    my %used    = map { $_ => $_ } @indices;
     my $iter = Algorithm::Combinatorics::Iterator->new(sub {
-        __next_variation(\%used, \@indices, $data, \@out) == -1 ? undef : [ @out ];
-    });
+        __next_variation(\%used, \@indices, @$data-1) == -1 ? undef : [ @{$data}[@indices] ];
+    }, [ @{$data}[@indices] ]);
 
     return __contextualize($iter);
 }
@@ -103,12 +97,10 @@ sub variations_with_repetition {
 	
 	return __contextualize(__once_iter()) if $k == 0;
 
-    my @indices = ((0) x ($k-1), -1);
-    my @out     = ($data->[0]) x $k;
-
+    my @indices = (0) x $k;
     my $iter = Algorithm::Combinatorics::Iterator->new(sub {
-        __next_variation_with_repetition(\@indices, $data, \@out) == -1 ? undef : [ @out ];
-    });
+        __next_variation_with_repetition(\@indices, @$data-1) == -1 ? undef : [ @{$data}[@indices] ];
+    }, [ @{$data}[@indices] ]);
 
     return __contextualize($iter);
 }
@@ -120,19 +112,9 @@ sub permutations {
 	return __contextualize(__once_iter()) if @$data == 0;
 
     my @indices = 0..(@$data-1);
-    my @out     = @$data;
-	
-    my $iter = do {
-		my $first_returned = 0;
-	    Algorithm::Combinatorics::Iterator->new(sub {
-		    if (not $first_returned) {
-			    $first_returned = 1;
-			    return [ @out ];
-		    } else {
-                __next_permutation(\@indices, $data, \@out) == -1 ? undef : [ @out ];
-            }
-		});
-    };
+    my $iter = Algorithm::Combinatorics::Iterator->new(sub {
+        __next_permutation(\@indices, @$data-1) == -1 ? undef : [ @{$data}[@indices] ];
+	}, [ @{$data}[@indices] ]);
 
     return __contextualize($iter);	
 }
@@ -176,14 +158,7 @@ sub __null_iter {
 }
 
 sub __once_iter {
-	my $once = 1;
-	Algorithm::Combinatorics::Iterator->new(sub {
-        if ($once) {
-		    $once = 0;
-		    return [];
-	    }
-	    return;
-	});
+	Algorithm::Combinatorics::Iterator->new(sub { return }, []);
 }
 
 1; # End of Algorithm::Combinatorics
@@ -211,7 +186,7 @@ Algorithm::Combinatorics - Efficient generation of combinatorial sequences
 
 =head1 VERSION
 
-This documentation refers to Algorithm::Combinatorics version 0.06.
+This documentation refers to Algorithm::Combinatorics version 0.07.
 
 =head1 DESCRIPTION
 
@@ -278,6 +253,11 @@ The permutations of C<@data> are all its reorderings. For example, the permutati
     (3, 1, 2)
     (3, 2, 1)
 
+The number of permutations of C<n> elements is:
+
+    n! = 1,                  if n = 0
+    n! = n*(n-1)*...*1,      if n > 0
+
 =head2 variations(\@data, $k)
 
 The variations of length C<$k> of C<@data> are all the tuples of length C<$k> consisting of elements of C<@data>. For example, for C<@data = (1, 2, 3)> and C<$k = 2>:
@@ -298,6 +278,11 @@ Note that
 is equivalent to
 
     variations(\@data, scalar @data);
+
+The number of variations of C<n> elements taken in groups of C<k> is:
+
+    v(n, k) = 1,                        if k = 0
+    v(n, k) = n*(n-1)*...*(n-k+1),      if 0 < k <= n
 
 =head2 variations_with_repetition(\@data, $k)
 
@@ -324,6 +309,10 @@ Note that C<$k> can be greater than the length of C<@data>. For example, for C<@
     (2, 2, 1)
     (2, 2, 2)
 
+The number of variations with repetition of C<n> elements taken in groups of C<< k >= 0 >> is:
+
+    vr(n, k) = n**k
+
 =head2 combinations(\@data, $k)
 
 The combinations of length C<$k> of C<@data> are all the sets of size C<$k> consisting of elements of C<@data>. For example, for C<@data = (1, 2, 3, 4)> and C<$k = 3>:
@@ -334,6 +323,10 @@ The combinations of length C<$k> of C<@data> are all the sets of size C<$k> cons
     (2, 3, 4)
 
 For this to make sense, C<$k> has to be less than or equal to the length of C<@data>. 
+
+The number of combinations of C<n> elements taken in groups of C<< 0 <= k <= n >> is:
+
+    n choose k = n!/(k!*(n-k)!)
 
 =head2 combinations_with_repetition(\@data, $k);
 
@@ -364,6 +357,9 @@ Note that C<$k> can be greater than the length of C<@data>. For example, for C<@
     (2, 3, 3, 3)
     (3, 3, 3, 3)
 
+The number of combinations with repetition of C<n> elements taken in groups of C<< k >= 0 >> is:
+
+    n+k-1 over k = (n+k-1)!/(k!*(n-1)!)
 
 =head1 CORNER CASES
 
