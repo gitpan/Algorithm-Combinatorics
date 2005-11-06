@@ -2,7 +2,8 @@
 
 package Algorithm::Combinatorics::C;
 
-use Inline C => <<"END_OF_C_CODE";
+our $VERSION = '0.10';
+use Inline C => <<"END_OF_C_CODE", VERSION => '0.10', NAME => 'Algorithm::Combinatorics::C';
 
 /**
  * These subroutines implement the actual iterators.
@@ -12,12 +13,6 @@ use Inline C => <<"END_OF_C_CODE";
  * the corresponding slice of data is copied in the Perl side.
  *
  * All the subroutines return -1 when there are no further tuples.
- *
- * As of this version variations() maintains a private hash table to be
- * able to keep track of the currently used indices, that is, the elements
- * of the indices array. This is used to be able to check efficiently whether
- * they are free to jump over them otherwise.
- *
  */
 
 void __swap(AV* av, int i, int j);
@@ -26,7 +21,10 @@ void __swap(AV* av, int i, int j);
 #define GET(av, i)         (SvIVX(*av_fetch(av, i, 0)))
 
 
-int __next_combination(SV* indices, int max_n)
+/**
+  * This provisional implementation emulates what we do by hand.
+  */
+int __next_combination(SV* indices_avptr, int max_n)
 {
     int i, j;
     IV  n;
@@ -34,7 +32,7 @@ int __next_combination(SV* indices, int max_n)
     SV* index;
 
     /* Workaround for some AVPtr problems reported. */
-    indices = (AV*) SvRV(indices);
+    AV* indices = (AV*) SvRV(indices_avptr);
 
     len_indices = av_len(indices);
     offset = max_n - len_indices;
@@ -53,14 +51,17 @@ int __next_combination(SV* indices, int max_n)
 }
 
 
-int __next_combination_with_repetition(SV* indices, int max_n)
+/**
+  * This provisional implementation emulates what we do by hand.
+  */
+int __next_combination_with_repetition(SV* indices_avptr, int max_n)
 {
     int i, j;
     IV  n;
     I32 len_indices;
 
     /* Workaround for some AVPtr problems reported. */
-    indices = (AV*) SvRV(indices);
+    AV* indices = (AV*) SvRV(indices_avptr);
 
     len_indices = av_len(indices);
     for (i = len_indices; i >= 0; --i) {
@@ -77,7 +78,11 @@ int __next_combination_with_repetition(SV* indices, int max_n)
 }
 
 
-int __next_variation(SV* indices, SV* used, int max_n)
+/**
+  * This provisional implementation emulates what we do by hand, keeping
+  * and array of boleans (used) to keep track of the indices in use.
+  */
+int __next_variation(SV* indices_avptr, SV* used_avptr, int max_n)
 {
     int i, j;
     I32 len_indices;
@@ -85,8 +90,8 @@ int __next_variation(SV* indices, SV* used, int max_n)
     IV  n;
 
     /* Workaround for some AVPtr problems reported. */
-    indices = (AV*) SvRV(indices);
-    used    = (AV*) SvRV(used);
+    AV* indices = (AV*) SvRV(indices_avptr);
+    AV* used    = (AV*) SvRV(used_avptr);
 
     len_indices = av_len(indices);
     for (i = len_indices; i >= 0; --i) {
@@ -116,14 +121,17 @@ int __next_variation(SV* indices, SV* used, int max_n)
 }
 
 
-int __next_variation_with_repetition(SV* indices, int max_n)
+/**
+  * This provisional implementation emulates what we do by hand.
+  */
+int __next_variation_with_repetition(SV* indices_avptr, int max_n)
 {
     int i;
     I32 len_indices;
     SV* index;
 
     /* Workaround for some AVPtr problems reported. */
-    indices = (AV*) SvRV(indices);
+    AV* indices = (AV*) SvRV(indices_avptr);
 
     len_indices = av_len(indices);
     for (i = len_indices; i >= 0; --i) {
@@ -139,51 +147,51 @@ int __next_variation_with_repetition(SV* indices, int max_n)
 }
 
 
-/* Adapted from http://www.scielo.br/scielo.php?pid=S0104-65002001000200009&script=sci_arttext&tlng=en */
-int __next_permutation(SV* indices, int max_n)
+/**
+  * Algorithm L (Lexicographic permutation generation), adapted from [1].
+  * I used "h" instead of the letter "l" for the sake of readability.
+  *
+  * This algorithm goes back at least to the 18th century, and have been rediscovered
+  * ever since.
+  */
+int __next_permutation(SV* indices_avptr, int max_n)
 {
-    int i, j, k;
+    int j, h, aj, k;
 
     /* Workaround for some AVPtr problems reported. */
-    indices = (AV*) SvRV(indices);
+    AV* indices = (AV*) SvRV(indices_avptr);
 
-    /* Find the element (i) to the left of the longest descreasing tail,
-       that is, the "1" in "2 3 1 6 5 4". */
-    for (i = max_n; i > 0 && GET(indices, i-1) > GET(indices, i); --i)
+    /* [Find j.] Find the element a(j) behind the longest descreasing tail. */
+    for (j = max_n-1; j >= 0 && GET(indices, j) > GET(indices, j+1); --j)
         ;
-
-    /* If that's the leftmost we are done. */
-    if (i == 0)
+    if (j == -1)
         return -1;
 
-    /* Find the first element (j) to the right which is greater than i-1. */
-    k = GET(indices, i-1);
-    for (j = i+1; j <= max_n && k < GET(indices, j); ++j)
+    /* [Increase a(j).] Find the rightmost element a(h) greater than a(j). */
+    aj = GET(indices, j);
+    for (h = max_n; aj > GET(indices, h); --h)
         ;
+    __swap(indices, j, h);
 
-    /* Swap them. */
-    __swap(indices, i-1, j-1);
-
-    /* Reverse the tail i..max_n. */
-    k = (max_n-i)/2;
-    for (j = 0; j <= k; j++)
-        __swap(indices, i+j, max_n-j);
+    /* [Reverse a(j+1)...a(max_n)] Reverse the tail. */
+    for (k = j+1, h = max_n; k < h; ++k, --h)
+        __swap(indices, k, h);
 
     /* Done. */
     return 1;
 }
 
+/* Swap elements i and j from av. */
 void __swap(AV* av, int i, int j)
 {
     IV tmp;
 
-    if (i != j) {
-        tmp = SvIVX(*av_fetch(av, i, 0));
-        UPDATE(av, i, GET(av, j));
-        UPDATE(av, j, tmp);
-    }
+    tmp = SvIVX(*av_fetch(av, i, 0));
+    UPDATE(av, i, GET(av, j));
+    UPDATE(av, j, tmp);
 }
 END_OF_C_CODE
+
 
 use Exporter;
 use base 'Exporter';

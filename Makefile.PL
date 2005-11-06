@@ -1,8 +1,8 @@
 use strict;
 use warnings;
-use ExtUtils::MakeMaker;
+use Inline::MakeMaker;
 
-WriteMakefile(
+WriteInlineMakefile(
     NAME                => 'Algorithm::Combinatorics',
     AUTHOR              => 'Xavier Noria <FXN@cpan.org>',
     VERSION_FROM        => 'lib/Algorithm/Combinatorics.pm',
@@ -17,3 +17,14 @@ WriteMakefile(
     dist                => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean               => { FILES => 'Algorithm-Combinatorics-*' },
 );
+
+# workaround for known error No rule to make target ... needed by `pure_all'
+open my $mk, 'Makefile' or die $!;
+my $text = do { local $/; <$mk> };
+close $mk;
+
+$text =~ s/^[.]pm[.]inl:/Combinatorics.inl:/xms;
+
+open $mk, '>', 'Makefile' or die $!;
+print $mk $text;
+close $mk;

@@ -3,7 +3,7 @@ package Algorithm::Combinatorics;
 use 5.006002;
 use strict;
 
-our $VERSION = '0.08';
+our $VERSION = '0.10';
 
 use Carp;
 use Scalar::Util qw(reftype);
@@ -199,7 +199,7 @@ Algorithm::Combinatorics - Efficient generation of combinatorial sequences
 
 =head1 VERSION
 
-This documentation refers to Algorithm::Combinatorics version 0.08.
+This documentation refers to Algorithm::Combinatorics version 0.10.
 
 =head1 DESCRIPTION
 
@@ -465,6 +465,10 @@ L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Algorithm-Combinatorics>.
 =head1 SEE ALSO
 
 L<Math::Combinatorics> is a pure Perl module that offers similar features.
+
+=head1 REFERENCES
+
+[1] Donald E. Knuth, I<The Art of Computer Programming, Volume 4, Fascicle 2: Generating All Tuples and Permutations>. Addison Wesley Professional, 2005. ISBN 0201853930.
 
 =head1 AUTHOR
 
