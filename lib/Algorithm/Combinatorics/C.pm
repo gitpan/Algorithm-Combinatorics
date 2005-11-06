@@ -1,13 +1,15 @@
+# -*-: Mode:C -*-
+
 package Algorithm::Combinatorics::C;
 
-use Inline C => <<'END_OF_C_CODE';
+use Inline C => <<"END_OF_C_CODE";
 
 /**
  * These subroutines implement the actual iterators.
- * 
+ *
  * The real combinatorics are done in-place on a private array of indices
  * that is guaranteed to hold IVs. Once the next tuple has been computed
- * on that array the corresponding slice of data is copied into out.
+ * the corresponding slice of data is copied in the Perl side.
  *
  * All the subroutines return -1 when there are no further tuples.
  *
@@ -23,12 +25,16 @@ void __swap(AV* av, int i, int j);
 #define UPDATE(av, i, n)   (sv_setiv(*av_fetch(av, i, 0), n))
 #define GET(av, i)         (SvIVX(*av_fetch(av, i, 0)))
 
-int __next_combination(AV* indices, int max_n)
+
+int __next_combination(SV* indices, int max_n)
 {
     int i, j;
     IV  n;
     I32 offset, len_indices;
     SV* index;
+
+    /* Workaround for some AVPtr problems reported. */
+    indices = (AV*) SvRV(indices);
 
     len_indices = av_len(indices);
     offset = max_n - len_indices;
@@ -46,11 +52,15 @@ int __next_combination(AV* indices, int max_n)
     return -1;
 }
 
-int __next_combination_with_repetition(AV* indices, int max_n)
+
+int __next_combination_with_repetition(SV* indices, int max_n)
 {
     int i, j;
     IV  n;
     I32 len_indices;
+
+    /* Workaround for some AVPtr problems reported. */
+    indices = (AV*) SvRV(indices);
 
     len_indices = av_len(indices);
     for (i = len_indices; i >= 0; --i) {
@@ -67,33 +77,32 @@ int __next_combination_with_repetition(AV* indices, int max_n)
 }
 
 
-int __next_variation(HV* used, AV* indices, int max_n)
+int __next_variation(SV* indices, SV* used, int max_n)
 {
     int i, j;
     I32 len_indices;
     SV* index;
     IV  n;
-    HE* he;
+
+    /* Workaround for some AVPtr problems reported. */
+    indices = (AV*) SvRV(indices);
+    used    = (AV*) SvRV(used);
 
     len_indices = av_len(indices);
     for (i = len_indices; i >= 0; --i) {
         index = *av_fetch(indices, i, 0);
         n = SvIVX(index);
-        hv_delete_ent(used, index, 0, 0);
-        while (n < max_n) {
-             ++n;
-             he = hv_fetch_ent(used, newSViv(n), 0, 0);
-             if (he == NULL) {
+        UPDATE(used, n, 0);
+        while (n++ < max_n) {
+             if (!GET(used, n)) {
                   sv_setiv(index, n);
-                  hv_store_ent(used, newSViv(n), newSViv(i), 0);
+                  UPDATE(used, n, 1);
                   for (j = i+1; j <= len_indices; ++j) {
                        n = -1;
-                       while (n < max_n) {
-                            ++n;
-                            he = hv_fetch_ent(used, newSViv(n), 0, 0);
-                            if (he == NULL) {
+                       while (n++ < max_n) {
+                            if (GET(used, n) == 0) {
                                  UPDATE(indices, j, n);
-                                 hv_store_ent(used, newSViv(n), newSViv(j), 0);
+                                 UPDATE(used, n, 1);
                                  break;
                             }
                        }
@@ -107,11 +116,14 @@ int __next_variation(HV* used, AV* indices, int max_n)
 }
 
 
-int __next_variation_with_repetition(AV* indices, int max_n)
+int __next_variation_with_repetition(SV* indices, int max_n)
 {
     int i;
     I32 len_indices;
     SV* index;
+
+    /* Workaround for some AVPtr problems reported. */
+    indices = (AV*) SvRV(indices);
 
     len_indices = av_len(indices);
     for (i = len_indices; i >= 0; --i) {
@@ -126,38 +138,48 @@ int __next_variation_with_repetition(AV* indices, int max_n)
     return -1;
 }
 
+
 /* Adapted from http://www.scielo.br/scielo.php?pid=S0104-65002001000200009&script=sci_arttext&tlng=en */
-int __next_permutation(AV* indices, int max_n)
+int __next_permutation(SV* indices, int max_n)
 {
     int i, j, k;
-    
-    i = max_n;
-    while (i > 0 && GET(indices, i-1) > GET(indices, i))
-        --i;
-    
+
+    /* Workaround for some AVPtr problems reported. */
+    indices = (AV*) SvRV(indices);
+
+    /* Find the element (i) to the left of the longest descreasing tail,
+       that is, the "1" in "2 3 1 6 5 4". */
+    for (i = max_n; i > 0 && GET(indices, i-1) > GET(indices, i); --i)
+        ;
+
+    /* If that's the leftmost we are done. */
     if (i == 0)
         return -1;
 
-    j = i + 1;  
-    while (j <= max_n && GET(indices, i-1) < GET(indices, j))
-        ++j;
-    
+    /* Find the first element (j) to the right which is greater than i-1. */
+    k = GET(indices, i-1);
+    for (j = i+1; j <= max_n && k < GET(indices, j); ++j)
+        ;
+
+    /* Swap them. */
     __swap(indices, i-1, j-1);
-    
+
+    /* Reverse the tail i..max_n. */
     k = (max_n-i)/2;
     for (j = 0; j <= k; j++)
-        __swap(indices, i+j, max_n-j);      
-    
+        __swap(indices, i+j, max_n-j);
+
+    /* Done. */
     return 1;
 }
 
 void __swap(AV* av, int i, int j)
 {
-	IV tmp;
-	
-	if (i != j) {		
+    IV tmp;
+
+    if (i != j) {
         tmp = SvIVX(*av_fetch(av, i, 0));
-        UPDATE(av, i, SvIVX(*av_fetch(av, j, 0)));
+        UPDATE(av, i, GET(av, j));
         UPDATE(av, j, tmp);
     }
 }

@@ -1,8 +1,9 @@
 package Algorithm::Combinatorics;
 
+use 5.006002;
 use strict;
 
-our $VERSION = '0.07';
+our $VERSION = '0.08';
 
 use Carp;
 use Scalar::Util qw(reftype);
@@ -10,7 +11,6 @@ use Exporter;
 use base 'Exporter';
 our @EXPORT_OK = qw(
     combinations
-    combinations_new
     combinations_with_repetition
     variations
     variations_with_repetition
@@ -21,6 +21,7 @@ our %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
 
 use Algorithm::Combinatorics::C;
 use Algorithm::Combinatorics::Iterator;
+
 
 sub combinations {
     my ($data, $k) = @_;
@@ -33,7 +34,7 @@ sub combinations {
 		carp("Parameter k is greater than the size of data");
 		return __contextualize(__null_iter());
 	}
-	
+
 	return __contextualize(__once_iter()) if $k == 0;
 
     my @indices = 0..($k-1);
@@ -44,17 +45,18 @@ sub combinations {
     return __contextualize($iter);
 }
 
+
 sub combinations_with_repetition {
     my ($data, $k) = @_;
 	__check_params($data, $k);
-	
+
 	if ($k < 0) {
 		carp("Parameter k is negative");
 		return __contextualize(__null_iter());
 	}
-	
+
 	return __contextualize(__once_iter()) if $k == 0;
-	
+
     my @indices = (0) x $k;
     my $iter = Algorithm::Combinatorics::Iterator->new(sub {
         __next_combination_with_repetition(\@indices, @$data-1) == -1 ? undef : [ @{$data}[@indices] ];
@@ -62,6 +64,7 @@ sub combinations_with_repetition {
 
     return __contextualize($iter);
 }
+
 
 sub variations {
     my ($data, $k) = @_;
@@ -77,14 +80,19 @@ sub variations {
 
 	return __contextualize(__once_iter()) if $k == 0;
 
+    # permutations() is more efficient because it knows
+    # all indices are always used
+    return permutations($data) if @$data == $k;
+
     my @indices = 0..($k-1);
-    my %used    = map { $_ => $_ } @indices;
+    my @used = ((1) x $k, (0) x (@$data-$k));
     my $iter = Algorithm::Combinatorics::Iterator->new(sub {
-        __next_variation(\%used, \@indices, @$data-1) == -1 ? undef : [ @{$data}[@indices] ];
+        __next_variation(\@indices, \@used, @$data-1) == -1 ? undef : [ @{$data}[@indices] ];
     }, [ @{$data}[@indices] ]);
 
     return __contextualize($iter);
 }
+
 
 sub variations_with_repetition {
     my ($data, $k) = @_;
@@ -94,7 +102,7 @@ sub variations_with_repetition {
 		carp("Parameter k is negative");
 		return __contextualize(__null_iter());
 	}
-	
+
 	return __contextualize(__once_iter()) if $k == 0;
 
     my @indices = (0) x $k;
@@ -105,9 +113,10 @@ sub variations_with_repetition {
     return __contextualize($iter);
 }
 
+
 sub permutations {
 	my ($data) = @_;
-	__check_params($data, 0);	
+	__check_params($data, 0);
 
 	return __contextualize(__once_iter()) if @$data == 0;
 
@@ -116,8 +125,9 @@ sub permutations {
         __next_permutation(\@indices, @$data-1) == -1 ? undef : [ @{$data}[@indices] ];
 	}, [ @{$data}[@indices] ]);
 
-    return __contextualize($iter);	
+    return __contextualize($iter);
 }
+
 
 sub __check_params {
 	my ($data, $k) = @_;
@@ -127,12 +137,13 @@ sub __check_params {
 	if (not defined $k) {
 		croak("Missing parameter k");
 	}
-	
+
 	my $type = reftype $data;
 	if (!defined($type) || $type ne "ARRAY") {
 		croak("Parameter data is not an arrayref");
-	}		
+	}
 }
+
 
 sub __contextualize {
     my $iter = shift;
@@ -153,9 +164,11 @@ sub __contextualize {
     }
 }
 
+
 sub __null_iter {
 	return Algorithm::Combinatorics::Iterator->new(sub { return });
 }
+
 
 sub __once_iter {
 	Algorithm::Combinatorics::Iterator->new(sub { return }, []);
@@ -186,7 +199,7 @@ Algorithm::Combinatorics - Efficient generation of combinatorial sequences
 
 =head1 VERSION
 
-This documentation refers to Algorithm::Combinatorics version 0.07.
+This documentation refers to Algorithm::Combinatorics version 0.08.
 
 =head1 DESCRIPTION
 
@@ -195,11 +208,11 @@ where I<efficient> means:
 
 =over 4
 
-=item * 
+=item *
 
 Speed: The core loops are written in C.
 
-=item * 
+=item *
 
 Memory: No recursion and no stacks are used.
 
@@ -221,7 +234,7 @@ All of them are context-sensitive:
 
 =over 4
 
-=item * 
+=item *
 
 In scalar context the subroutines return an iterator that responds to the C<next()> method. Using this object you can iterate over the sequence of tuples one by one this way:
 
@@ -234,7 +247,7 @@ The C<next()> method returns an arrayref to the next tuple, if any, or C<undef> 
 
 Since no recursion and no stacks are used the memory usage is minimal. Thus, we can iterate over sequences of virtually any size.
 
-=item * 
+=item *
 
 In list context the subroutines slurp the entire set of tuples. This behaviour is offered for convenience, but take into account that the resulting array may be really huge:
 
@@ -269,7 +282,7 @@ The variations of length C<$k> of C<@data> are all the tuples of length C<$k> co
     (3, 1)
     (3, 2)
 
-For this to make sense, C<$k> has to be less than or equal to the length of C<@data>. 
+For this to make sense, C<$k> has to be less than or equal to the length of C<@data>.
 
 Note that
 
@@ -322,7 +335,7 @@ The combinations of length C<$k> of C<@data> are all the sets of size C<$k> cons
     (1, 3, 4)
     (2, 3, 4)
 
-For this to make sense, C<$k> has to be less than or equal to the length of C<@data>. 
+For this to make sense, C<$k> has to be less than or equal to the length of C<@data>.
 
 The number of combinations of C<n> elements taken in groups of C<< 0 <= k <= n >> is:
 
@@ -424,11 +437,11 @@ The following errors may be thrown:
 =over
 
 =item Missing parameter data
-    
+
 A subroutine was called with no parameters.
 
 =item Missing parameter k
-    
+
 A subroutine that requires a second parameter k was called without one.
 
 =item Parameter data is not an arrayref
@@ -439,8 +452,15 @@ The first parameter is not an arrayref (tested with "reftype()" from Scalar::Uti
 
 =head1 DEPENDENCIES
 
-Algorithm::Combinatorics uses L<Test::More> and L<FindBin> for testing,
+Algorithm::Combinatorics is known to run under perl 5.6.2. The
+distribution uses L<Test::More> and L<FindBin> for testing,
 L<Scalar::Util> for C<reftype()>, and L<Inline::C> for XS.
+
+=head1 BUGS
+
+Please report any bugs or feature requests to
+C<bug-algorithm-combinatorics@rt.cpan.org>, or through the web interface at
+L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Algorithm-Combinatorics>.
 
 =head1 SEE ALSO
 
@@ -449,12 +469,6 @@ L<Math::Combinatorics> is a pure Perl module that offers similar features.
 =head1 AUTHOR
 
 Xavier Noria (FXN), E<lt>fxn@cpan.orgE<gt>
-
-=head1 BUGS
-
-Please report any bugs or feature requests to
-C<bug-algorithm-combinatorics@rt.cpan.org>, or through the web interface at
-L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Algorithm-Combinatorics>.
 
 =head1 COPYRIGHT & LICENSE
 

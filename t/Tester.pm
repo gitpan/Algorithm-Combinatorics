@@ -21,6 +21,21 @@ sub __test {
 
 	@result = $self->{to_test}(@rest);
 	Test::More::is_deeply($expected, \@result, "");
+
+    if (@rest > 1) {
+        # test we don't assume $k is an IV in XS
+        $rest[1] = "$rest[1]";
+
+        @result = ();
+        $iter = $self->{to_test}(@rest);
+        while (my $c = $iter->next) {
+            push @result, $c;
+        }
+        Test::More::is_deeply($expected, \@result, "");
+
+        @result = $self->{to_test}(@rest);
+        Test::More::is_deeply($expected, \@result, "");
+    }
 }
 
 1;

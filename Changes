@@ -1,13 +1,33 @@
 Revision history for Algorithm-Combinatorics
 
+0.08 November 6 2005
+
+    * Changed hyphens in test filenames with underscores
+
+    * The module is known to run under 5.6.2, so the corresponding
+      use VERSION has been added
+
+    * variations(\@data, $k) is delegated to permutations(\@data) for
+      @data == $k, since permutations() is more efficient
+
+    * Changed AV* in signatures to SV* plus a cast (SV*) SvRV(array) due
+      to problems reported regarding AVPtrs. I copied the trick from the
+      Changes of Digest::SHA. (Thanks to Aaron Dalton for reporting the
+      problem.)
+
+    * variations() is much better, almost twice as fast and does not
+      create SVs
+
 0.07 November 5 2005
 
     * Documented the corresponding formulas
-    * Slicing is done now in Perl. The code is much more clear
-      and in my benchmarks no significant difference is measured
-    * The iterator now may receive an initial arrayref
-      (this is private implementation), which simplifies the set
-      up of the iterator when the first tuple is known
+
+    * Slicing is done now in Perl. The code is much more clear and in my
+      benchmarks no significant difference is measured
+
+    * The iterator now may receive an initial arrayref (this is private
+      implementation), which simplifies the set up of the iterator when
+      the first tuple is known
 
 0.06 November 5 2005
 
@@ -16,24 +36,33 @@ Revision history for Algorithm-Combinatorics
 0.05  November 4 2005
 
     * Rewrote the test suite, and relevant documentation
-    * Added the helper module t/Tester.pm
-      to factor out a common test code pattern
-    * If k is "out of natural range"" the empty set is returned
-      and a warning is issued
-    * The iterators return an arrayref, and the implementation
-      was revised accordingly to be mathematically correct in
-      edge-cases and more forgiving
-    * I can't stand that DIAGNOSTICS::Errors section, so many
-      croaks on boundary conditions are so unperlish! The module
-      has just a couple of days so I am on time to fix this
+
+    * Added the helper module t/Tester.pm to factor out a common test
+      code pattern
+
+    * If k is "out of natural range"" the empty set is returned and a
+      warning is issued
+
+    * The iterators return an arrayref, and the implementation was
+      revised accordingly to be mathematically correct in edge-cases and
+      more forgiving
+
+    * I can't stand that DIAGNOSTICS::Errors section, so many croaks on
+      boundary conditions are so unperlish! The module has just a couple
+      of days so I am on time to fix this
 
 0.02  November 3 2005
 
     * README revised
+
     * DEPENDENCIES added to POD
+
     * DIAGNOSTICS added to POD
+
     * VERSION added to POD
+
     * Added some code documentation
+
     * Minor tweaks on the XS code
 
 0.01  November 2 2005
