@@ -1,10 +1,8 @@
-# -*-: Mode:C -*-
+# -*- Mode: C -*-
 
 package Algorithm::Combinatorics::C;
 
-our $VERSION = '0.10';
-use Inline C => <<"END_OF_C_CODE", VERSION => '0.10', NAME => 'Algorithm::Combinatorics::C';
-
+use Inline C => <<'END_OF_C_CODE';
 /**
  * These subroutines implement the actual iterators.
  *
@@ -18,31 +16,31 @@ use Inline C => <<"END_OF_C_CODE", VERSION => '0.10', NAME => 'Algorithm::Combin
 void __swap(AV* av, int i, int j);
 
 #define UPDATE(av, i, n)   (sv_setiv(*av_fetch(av, i, 0), n))
-#define GET(av, i)         (SvIVX(*av_fetch(av, i, 0)))
+#define GETIV(av, i)         (SvIVX(*av_fetch(av, i, 0)))
 
 
 /**
-  * This provisional implementation emulates what we do by hand.
-  */
-int __next_combination(SV* indices_avptr, int max_n)
+ * This provisional implementation emulates what we do by hand.
+ */
+int __next_combination(SV* tuple_avptr, int max_n)
 {
     int i, j;
     IV  n;
-    I32 offset, len_indices;
-    SV* index;
+    I32 offset, len_tuple;
+    SV* e;
 
     /* Workaround for some AVPtr problems reported. */
-    AV* indices = (AV*) SvRV(indices_avptr);
+    AV* tuple = (AV*) SvRV(tuple_avptr);
 
-    len_indices = av_len(indices);
-    offset = max_n - len_indices;
-    for (i = len_indices; i >= 0; --i) {
-        index = *av_fetch(indices, i, 0);
-        n = SvIVX(index);
+    len_tuple = av_len(tuple);
+    offset = max_n - len_tuple;
+    for (i = len_tuple; i >= 0; --i) {
+        e = *av_fetch(tuple, i, 0);
+        n = SvIVX(e);
         if (n < i + offset) {
-             sv_setiv(index, ++n);
-             for (j = i+1; j <= len_indices; ++j)
-                  UPDATE(indices, j, ++n);
+             sv_setiv(e, ++n);
+             for (j = i+1; j <= len_tuple; ++j)
+                  UPDATE(tuple, j, ++n);
              return i;
         }
     }
@@ -52,24 +50,24 @@ int __next_combination(SV* indices_avptr, int max_n)
 
 
 /**
-  * This provisional implementation emulates what we do by hand.
-  */
-int __next_combination_with_repetition(SV* indices_avptr, int max_n)
+ * This provisional implementation emulates what we do by hand.
+ */
+int __next_combination_with_repetition(SV* tuple_avptr, int max_n)
 {
     int i, j;
     IV  n;
-    I32 len_indices;
+    I32 len_tuple;
 
     /* Workaround for some AVPtr problems reported. */
-    AV* indices = (AV*) SvRV(indices_avptr);
+    AV* tuple = (AV*) SvRV(tuple_avptr);
 
-    len_indices = av_len(indices);
-    for (i = len_indices; i >= 0; --i) {
-        n = GET(indices, i);
+    len_tuple = av_len(tuple);
+    for (i = len_tuple; i >= 0; --i) {
+        n = GETIV(tuple, i);
         if (n < max_n) {
              ++n;
-             for (j = i; j <= len_indices; ++j)
-                  UPDATE(indices, j, n);
+             for (j = i; j <= len_tuple; ++j)
+                  UPDATE(tuple, j, n);
              return i;
         }
     }
@@ -79,34 +77,34 @@ int __next_combination_with_repetition(SV* indices_avptr, int max_n)
 
 
 /**
-  * This provisional implementation emulates what we do by hand, keeping
-  * and array of boleans (used) to keep track of the indices in use.
-  */
-int __next_variation(SV* indices_avptr, SV* used_avptr, int max_n)
+ * This provisional implementation emulates what we do by hand, keeping
+ * and array of booleans (used) to keep track of the indices in use.
+ */
+int __next_variation(SV* tuple_avptr, SV* used_avptr, int max_n)
 {
     int i, j;
-    I32 len_indices;
-    SV* index;
+    I32 len_tuple;
+    SV* e;
     IV  n;
 
     /* Workaround for some AVPtr problems reported. */
-    AV* indices = (AV*) SvRV(indices_avptr);
+    AV* tuple = (AV*) SvRV(tuple_avptr);
     AV* used    = (AV*) SvRV(used_avptr);
 
-    len_indices = av_len(indices);
-    for (i = len_indices; i >= 0; --i) {
-        index = *av_fetch(indices, i, 0);
-        n = SvIVX(index);
+    len_tuple = av_len(tuple);
+    for (i = len_tuple; i >= 0; --i) {
+        e = *av_fetch(tuple, i, 0);
+        n = SvIVX(e);
         UPDATE(used, n, 0);
         while (n++ < max_n) {
-             if (!GET(used, n)) {
-                  sv_setiv(index, n);
+             if (!GETIV(used, n)) {
+                  sv_setiv(e, n);
                   UPDATE(used, n, 1);
-                  for (j = i+1; j <= len_indices; ++j) {
+                  for (j = i+1; j <= len_tuple; ++j) {
                        n = -1;
                        while (n++ < max_n) {
-                            if (GET(used, n) == 0) {
-                                 UPDATE(indices, j, n);
+                            if (GETIV(used, n) == 0) {
+                                 UPDATE(tuple, j, n);
                                  UPDATE(used, n, 1);
                                  break;
                             }
@@ -122,25 +120,25 @@ int __next_variation(SV* indices_avptr, SV* used_avptr, int max_n)
 
 
 /**
-  * This provisional implementation emulates what we do by hand.
-  */
-int __next_variation_with_repetition(SV* indices_avptr, int max_n)
+ * This provisional implementation emulates what we do by hand.
+ */
+int __next_variation_with_repetition(SV* tuple_avptr, int max_n)
 {
     int i;
-    I32 len_indices;
-    SV* index;
+    I32 len_tuple;
+    SV* e;
 
     /* Workaround for some AVPtr problems reported. */
-    AV* indices = (AV*) SvRV(indices_avptr);
+    AV* tuple = (AV*) SvRV(tuple_avptr);
 
-    len_indices = av_len(indices);
-    for (i = len_indices; i >= 0; --i) {
-        index = *av_fetch(indices, i, 0);
-        if (SvIVX(index) < max_n) {
-            sv_inc(index);
+    len_tuple = av_len(tuple);
+    for (i = len_tuple; i >= 0; --i) {
+        e = *av_fetch(tuple, i, 0);
+        if (SvIVX(e) < max_n) {
+            sv_inc(e);
             return i;
         }
-        sv_setiv(index, 0);
+        sv_setiv(e, 0);
     }
 
     return -1;
@@ -148,46 +146,48 @@ int __next_variation_with_repetition(SV* indices_avptr, int max_n)
 
 
 /**
-  * Algorithm L (Lexicographic permutation generation), adapted from [1].
-  * I used "h" instead of the letter "l" for the sake of readability.
-  *
-  * This algorithm goes back at least to the 18th century, and have been rediscovered
-  * ever since.
-  */
-int __next_permutation(SV* indices_avptr, int max_n)
+ * Algorithm L (Lexicographic permutation generation), adapted from [1].
+ * I used "h" instead of the letter "l" for the sake of readability.
+ *
+ * This algorithm goes back at least to the 18th century, and has been rediscovered
+ * ever since.
+ */
+int __next_permutation(SV* tuple_avptr, int max_n)
 {
     int j, h, aj, k;
 
     /* Workaround for some AVPtr problems reported. */
-    AV* indices = (AV*) SvRV(indices_avptr);
+    AV* tuple = (AV*) SvRV(tuple_avptr);
 
     /* [Find j.] Find the element a(j) behind the longest descreasing tail. */
-    for (j = max_n-1; j >= 0 && GET(indices, j) > GET(indices, j+1); --j)
+    for (j = max_n-1; j >= 0 && GETIV(tuple, j) > GETIV(tuple, j+1); --j)
         ;
     if (j == -1)
         return -1;
 
     /* [Increase a(j).] Find the rightmost element a(h) greater than a(j). */
-    aj = GET(indices, j);
-    for (h = max_n; aj > GET(indices, h); --h)
+    aj = GETIV(tuple, j);
+    for (h = max_n; aj > GETIV(tuple, h); --h)
         ;
-    __swap(indices, j, h);
+    __swap(tuple, j, h);
 
     /* [Reverse a(j+1)...a(max_n)] Reverse the tail. */
     for (k = j+1, h = max_n; k < h; ++k, --h)
-        __swap(indices, k, h);
+        __swap(tuple, k, h);
 
     /* Done. */
     return 1;
 }
 
-/* Swap elements i and j from av. */
+/**
+ * Swap the ith and jth elements in av. 
+ *
+ * Assumes av contains IVs.
+ */
 void __swap(AV* av, int i, int j)
 {
-    IV tmp;
-
-    tmp = SvIVX(*av_fetch(av, i, 0));
-    UPDATE(av, i, GET(av, j));
+    IV tmp = GETIV(av, i);
+    UPDATE(av, i, GETIV(av, j));
     UPDATE(av, j, tmp);
 }
 END_OF_C_CODE

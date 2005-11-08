@@ -3,7 +3,7 @@ package Algorithm::Combinatorics;
 use 5.006002;
 use strict;
 
-our $VERSION = '0.10';
+our $VERSION = '0.11';
 
 use Carp;
 use Scalar::Util qw(reftype);
@@ -199,7 +199,7 @@ Algorithm::Combinatorics - Efficient generation of combinatorial sequences
 
 =head1 VERSION
 
-This documentation refers to Algorithm::Combinatorics version 0.10.
+This documentation refers to Algorithm::Combinatorics version 0.11.
 
 =head1 DESCRIPTION
 
