@@ -3,25 +3,24 @@ package Algorithm::Combinatorics;
 use 5.006002;
 use strict;
 
-our $VERSION = '0.11';
+our $VERSION = '0.12';
+
+use XSLoader;
+XSLoader::load('Algorithm::Combinatorics', $VERSION);
 
 use Carp;
 use Scalar::Util qw(reftype);
 use Exporter;
 use base 'Exporter';
 our @EXPORT_OK = qw(
-    combinations
-    combinations_with_repetition
-    variations
-    variations_with_repetition
+    combinations    
+    combinations_with_repetition    
+    variations    
+    variations_with_repetition    
     permutations
 );
 
 our %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
-
-use Algorithm::Combinatorics::C;
-use Algorithm::Combinatorics::Iterator;
-
 
 sub combinations {
     my ($data, $k) = @_;
@@ -41,6 +40,38 @@ sub combinations {
     my $iter = Algorithm::Combinatorics::Iterator->new(sub {
         __next_combination(\@indices, @$data-1) == -1 ? undef : [ @{$data}[@indices] ];
     }, [ @{$data}[@indices] ]);
+
+    return __contextualize($iter);
+}
+
+
+sub combinations_new {
+    my ($data, $k) = @_;
+	__check_params($data, $k);
+
+	if ($k < 0) {
+		carp("Parameter k is negative");
+		return __contextualize(__null_iter());
+	} elsif ($k > @$data) {
+		carp("Parameter k is greater than the size of data");
+		return __contextualize(__null_iter());
+	}
+
+	return __contextualize(__once_iter()) if $k == 0;
+	
+	if ($k == @$data) {
+	    my $iter = Algorithm::Combinatorics::Iterator->new(sub { 
+	        return; 
+	    }, [ @$data ] );
+	    return __contextualize($iter);
+	}
+
+    my @c = (0, 0..($k-1), 0+@$data, 0);
+    my $j = $k;
+    my $iter = Algorithm::Combinatorics::Iterator->new(sub {
+        $j = __next_combination_new(\@c, $j);
+        $j == -1 ? undef : [ @{$data}[@c[1..$k]] ];
+    }, [ @{$data}[@c[1..$k]] ]);
 
     return __contextualize($iter);
 }
@@ -114,6 +145,33 @@ sub variations_with_repetition {
 }
 
 
+sub __variations_with_repetition_gray_code {
+    my ($data, $k) = @_;
+	__check_params($data, $k);
+
+	if ($k < 0) {
+		carp("Parameter k is negative");
+		return __contextualize(__null_iter());
+	}
+
+	return __contextualize(__once_iter()) if $k == 0;
+
+    my @indices        = (0) x $k;
+    my @focus_pointers = 0..$k; # yeah, length $k+1
+    my @directions     = (1) x $k;
+    my $iter = Algorithm::Combinatorics::Iterator->new(sub {
+        __next_variation_with_repetition_gray_code(
+            \@indices,
+            \@focus_pointers,
+            \@directions,
+            @$data-1,
+        ) == -1 ? undef : [ @{$data}[@indices] ];
+    }, [ @{$data}[@indices] ]);
+
+    return __contextualize($iter);
+}
+
+
 sub permutations {
 	my ($data) = @_;
 	__check_params($data, 0);
@@ -122,8 +180,24 @@ sub permutations {
 
     my @indices = 0..(@$data-1);
     my $iter = Algorithm::Combinatorics::Iterator->new(sub {
-        __next_permutation(\@indices, @$data-1) == -1 ? undef : [ @{$data}[@indices] ];
+        __next_permutation(\@indices) == -1 ? undef : [ @{$data}[@indices] ];
 	}, [ @{$data}[@indices] ]);
+
+    return __contextualize($iter);
+}
+
+
+sub __permutations_heap {
+	my ($data) = @_;
+	__check_params($data, 0);
+
+	return __contextualize(__once_iter()) if @$data == 0;
+
+    my @a = 0..(@$data-1);
+    my @c = (0) x (@$data+1); # yeah, there's an spurious $c[0] to make the notation coincide
+    my $iter = Algorithm::Combinatorics::Iterator->new(sub {
+        __next_permutation_heap(\@a, \@c) == -1 ? undef : [ @{$data}[@a] ];
+	}, [ @{$data}[@a] ]);
 
     return __contextualize($iter);
 }
@@ -174,7 +248,41 @@ sub __once_iter {
 	Algorithm::Combinatorics::Iterator->new(sub { return }, []);
 }
 
-1; # End of Algorithm::Combinatorics
+# This is a bit dirty by now, the objective is to be able to
+# pass an initial sequence to the iterator and avoid a test
+# in each iteration saying whether the sequence was already
+# returned or not.
+#
+# Note that the public contract is that responds to next(), no
+# iterator class name is documented.
+
+package Algorithm::Combinatorics::Iterator;
+
+sub new {
+    my ($class, $coderef, $first_seq) = @_;
+	if (defined $first_seq) {
+    	return bless [$coderef, $first_seq], $class;
+    } else {
+		return bless $coderef, 'Algorithm::Combinatorics::JustCoderef';
+	}
+}
+
+sub next {
+    my ($self) = @_;
+    $_[0] = $self->[0];
+    bless $_[0], 'Algorithm::Combinatorics::JustCoderef';
+    return $self->[1];
+}
+
+package Algorithm::Combinatorics::JustCoderef;
+
+sub next {
+	my ($self) = @_;
+	return $self->();
+}
+
+
+1;
 
 __END__
 
@@ -199,24 +307,13 @@ Algorithm::Combinatorics - Efficient generation of combinatorial sequences
 
 =head1 VERSION
 
-This documentation refers to Algorithm::Combinatorics version 0.11.
+This documentation refers to Algorithm::Combinatorics version 0.12.
 
 =head1 DESCRIPTION
 
-Algorithm::Combinatorics is an efficient generator of combinatorial sequences,
-where I<efficient> means:
-
-=over 4
-
-=item *
-
-Speed: The core loops are written in C.
-
-=item *
-
-Memory: No recursion and no stacks are used.
-
-=back
+Algorithm::Combinatorics is an efficient generator of combinatorial sequences.
+Algorithms are selected from the literature (work in progress, see L</REFERENCES>),
+and written in C for speed.
 
 Tuples are generated in lexicographic order.
 
@@ -454,7 +551,7 @@ The first parameter is not an arrayref (tested with "reftype()" from Scalar::Uti
 
 Algorithm::Combinatorics is known to run under perl 5.6.2. The
 distribution uses L<Test::More> and L<FindBin> for testing,
-L<Scalar::Util> for C<reftype()>, and L<Inline::C> for XS.
+L<Scalar::Util> for C<reftype()>, and L<XSLoader> for XS.
 
 =head1 BUGS
 

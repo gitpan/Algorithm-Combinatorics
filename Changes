@@ -1,5 +1,11 @@
 Revision history for Algorithm-Combinatorics
 
+0.12 November 13 2005
+
+    * DESCRIPTION was reworded.
+
+    * Refactored as regular XS-based module.
+
 0.11 November 8 2005
 
     * CPAN.pm does not resolve the dependency with Inline before

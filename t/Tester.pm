@@ -5,8 +5,9 @@ use strict;
 use Test::More;
 
 sub __new {
-	my ($class, $coderef) = @_;
-	bless { to_test => $coderef }, $class;
+	my ($class, $coderef, $comparator) = @_;
+	$comparator = \&Test::More::is_deeply if not $comparator;
+	bless { to_test => $coderef, comparator => $comparator }, $class;
 }
 
 sub __test {
@@ -17,10 +18,10 @@ sub __test {
 	while (my $c = $iter->next) {
 	    push @result, $c;
 	}
-	Test::More::is_deeply($expected, \@result, "");
+	$self->{comparator}($expected, \@result, "");
 
 	@result = $self->{to_test}(@rest);
-	Test::More::is_deeply($expected, \@result, "");
+	$self->{comparator}($expected, \@result, "");
 
     if (@rest > 1) {
         # test we don't assume $k is an IV in XS
@@ -31,10 +32,10 @@ sub __test {
         while (my $c = $iter->next) {
             push @result, $c;
         }
-        Test::More::is_deeply($expected, \@result, "");
+        $self->{comparator}($expected, \@result, "");
 
         @result = $self->{to_test}(@rest);
-        Test::More::is_deeply($expected, \@result, "");
+        $self->{comparator}($expected, \@result, "");
     }
 }
 

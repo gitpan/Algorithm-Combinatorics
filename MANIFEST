@@ -3,9 +3,8 @@ MANIFEST
 META.yml # Will be created by "make dist"
 Makefile.PL
 README
-lib/Algorithm/Combinatorics.pm
-lib/Algorithm/Combinatorics/C.pm
-lib/Algorithm/Combinatorics/Iterator.pm
+Combinatorics.xs
+Combinatorics.pm
 t/Tester.pm
 t/00_load.t
 t/01_combinations.t
