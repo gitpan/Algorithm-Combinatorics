@@ -3,7 +3,7 @@ INSTALLATION
 
 If you have root on a Unix system it is enough to run this command:
 
-    % cpan install Algorithm::Combinatorics
+    % cpan Algorithm::Combinatorics
 
 To install this module by hand, run the following commands:
 

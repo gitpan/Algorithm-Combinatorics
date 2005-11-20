@@ -12,5 +12,6 @@ t/02_combinations_with_repetition.t
 t/03_variations.t
 t/04_variations_with_repetition.t
 t/05_permutations.t
+t/06_derangements.t
 t/pod-coverage.t
 t/pod.t

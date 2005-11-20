@@ -3,7 +3,7 @@ package Algorithm::Combinatorics;
 use 5.006002;
 use strict;
 
-our $VERSION = '0.12';
+our $VERSION = '0.13';
 
 use XSLoader;
 XSLoader::load('Algorithm::Combinatorics', $VERSION);
@@ -13,11 +13,12 @@ use Scalar::Util qw(reftype);
 use Exporter;
 use base 'Exporter';
 our @EXPORT_OK = qw(
-    combinations    
-    combinations_with_repetition    
-    variations    
-    variations_with_repetition    
+    combinations
+    combinations_with_repetition
+    variations
+    variations_with_repetition
     permutations
+    derangements
 );
 
 our %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
@@ -40,38 +41,6 @@ sub combinations {
     my $iter = Algorithm::Combinatorics::Iterator->new(sub {
         __next_combination(\@indices, @$data-1) == -1 ? undef : [ @{$data}[@indices] ];
     }, [ @{$data}[@indices] ]);
-
-    return __contextualize($iter);
-}
-
-
-sub combinations_new {
-    my ($data, $k) = @_;
-	__check_params($data, $k);
-
-	if ($k < 0) {
-		carp("Parameter k is negative");
-		return __contextualize(__null_iter());
-	} elsif ($k > @$data) {
-		carp("Parameter k is greater than the size of data");
-		return __contextualize(__null_iter());
-	}
-
-	return __contextualize(__once_iter()) if $k == 0;
-	
-	if ($k == @$data) {
-	    my $iter = Algorithm::Combinatorics::Iterator->new(sub { 
-	        return; 
-	    }, [ @$data ] );
-	    return __contextualize($iter);
-	}
-
-    my @c = (0, 0..($k-1), 0+@$data, 0);
-    my $j = $k;
-    my $iter = Algorithm::Combinatorics::Iterator->new(sub {
-        $j = __next_combination_new(\@c, $j);
-        $j == -1 ? undef : [ @{$data}[@c[1..$k]] ];
-    }, [ @{$data}[@c[1..$k]] ]);
 
     return __contextualize($iter);
 }
@@ -202,6 +171,22 @@ sub __permutations_heap {
     return __contextualize($iter);
 }
 
+sub derangements {
+	my ($data) = @_;
+	__check_params($data, 0);
+
+	return __contextualize(__once_iter()) if @$data == 0;
+    return __contextualize(__null_iter()) if @$data == 1;
+
+    my @indices = 0..(@$data-1);
+    @indices[$_, $_+1] = @indices[$_+1, $_] for map { 2*$_ } 0..((@$data-2)/2);
+    @indices[-1, -2] = @indices[-2, -1] if @$data % 2;
+    my $iter = Algorithm::Combinatorics::Iterator->new(sub {
+        __next_derangement(\@indices) == -1 ? undef : [ @{$data}[@indices] ];
+	}, [ @{$data}[@indices] ]);
+
+    return __contextualize($iter);
+}
 
 sub __check_params {
 	my ($data, $k) = @_;
@@ -248,6 +233,8 @@ sub __once_iter {
 	Algorithm::Combinatorics::Iterator->new(sub { return }, []);
 }
 
+
+
 # This is a bit dirty by now, the objective is to be able to
 # pass an initial sequence to the iterator and avoid a test
 # in each iteration saying whether the sequence was already
@@ -286,6 +273,8 @@ sub next {
 
 __END__
 
+
+
 =head1 NAME
 
 Algorithm::Combinatorics - Efficient generation of combinatorial sequences
@@ -307,7 +296,7 @@ Algorithm::Combinatorics - Efficient generation of combinatorial sequences
 
 =head1 VERSION
 
-This documentation refers to Algorithm::Combinatorics version 0.12.
+This documentation refers to Algorithm::Combinatorics version 0.13.
 
 =head1 DESCRIPTION
 
@@ -322,6 +311,7 @@ Tuples are generated in lexicographic order.
 Algorithm::Combinatorics provides these subroutines:
 
     permutations(\@data)
+    derangements(\@data)
     variations(\@data, $k)
     variations_with_repetition(\@data, $k)
     combinations(\@data, $k)
@@ -367,6 +357,21 @@ The number of permutations of C<n> elements is:
 
     n! = 1,                  if n = 0
     n! = n*(n-1)*...*1,      if n > 0
+
+=head2 derangements(\@data)
+
+The derangements of C<@data> are those reorderings that have no element
+in its original place. In jargon those are the permutations of C<@data>
+which have no fixed point. For example, the derangements of C<@data =
+(1, 2, 3)> are:
+
+    (2, 3, 1)
+    (3, 1, 2)
+
+The number of derangements of C<n> elements is:
+
+    d(n) = 1,                       if n = 0
+    d(n) = n*d(n-1) + (-1)**n,      if n > 0
 
 =head2 variations(\@data, $k)
 
@@ -479,15 +484,25 @@ Since version 0.05 subroutines are more forgiving for unsual values of C<$k>:
 
 =item *
 
-If C<$k> is less than zero no tuple exists. Thus, the very first call to the iterator's C<next()> method returns C<undef>, and a call in list context returns the empty list. (See L</DIAGNOSTICS>.)
+If C<$k> is less than zero no tuple exists. Thus, the very first call to
+the iterator's C<next()> method returns C<undef>, and a call in list
+context returns the empty list. (See L</DIAGNOSTICS>.)
 
 =item *
 
-If C<$k> is zero we have one tuple, the empty tuple. This is a different case than the former: when C<$k> is negative there are no tuples at all, when C<$k> is zero there is a tuple. The rationale for this behaviour is the same rationale for (n choose 0) := 1: the empty tuple is a subset of data with C<$k = 0> elements, so it complies with the definition.
+If C<$k> is zero we have one tuple, the empty tuple. This is a different
+case than the former: when C<$k> is negative there are no tuples at all,
+when C<$k> is zero there is one tuple. The rationale for this behaviour
+is the same rationale for n choose 0 = 1: the empty tuple is a subset of
+C<@data> with C<$k = 0> elements, so it complies with the definition.
 
 =item *
 
-If C<$k> is greater than the size of C<@data>, and we are calling a subroutine that does not generate tuples with repetitions, no tuple exists. Thus, the very first call to the iterator's C<next()> method returns C<undef>, and a call in list context returns the empty list. (See L</DIAGNOSTICS>.)
+If C<$k> is greater than the size of C<@data>, and we are calling a
+subroutine that does not generate tuples with repetitions, no tuple
+exists. Thus, the very first call to the iterator's C<next()> method
+returns C<undef>, and a call in list context returns the empty
+list. (See L</DIAGNOSTICS>.)
 
 =back
 

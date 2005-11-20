@@ -1,5 +1,12 @@
 Revision history for Algorithm-Combinatorics
 
+    * Added derangements(), code, tests, and docs.
+
+    * Benchmarked permutations() against permutations() with loop
+      variables declared as registers. No measurable difference.
+
+    * Removed "install" from the cpan(1) example in README.
+
 0.12 November 13 2005
 
     * DESCRIPTION was reworded.
