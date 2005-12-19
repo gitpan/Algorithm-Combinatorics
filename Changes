@@ -1,5 +1,19 @@
 Revision history for Algorithm-Combinatorics
 
+0.14 December 19 2005
+
+    * Small rewordings in POD.
+
+    * Added TAOCP Vol 4, Fasc 3 to REFERENCES.
+
+    * Added tuples* as alias to variations* to add the nomenclature
+      in Knuth's, Mathematica, etc. to the interface.
+
+    * Code cleanup.
+
+
+0.13 November 20 2005
+
     * Added derangements(), code, tests, and docs.
 
     * Benchmarked permutations() against permutations() with loop

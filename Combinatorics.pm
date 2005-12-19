@@ -3,7 +3,7 @@ package Algorithm::Combinatorics;
 use 5.006002;
 use strict;
 
-our $VERSION = '0.13';
+our $VERSION = '0.14';
 
 use XSLoader;
 XSLoader::load('Algorithm::Combinatorics', $VERSION);
@@ -17,25 +17,25 @@ our @EXPORT_OK = qw(
     combinations_with_repetition
     variations
     variations_with_repetition
+    tuples
+    tuples_with_repetition
     permutations
     derangements
 );
 
 our %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
 
+
 sub combinations {
     my ($data, $k) = @_;
 	__check_params($data, $k);
 
-	if ($k < 0) {
-		carp("Parameter k is negative");
-		return __contextualize(__null_iter());
-	} elsif ($k > @$data) {
+	return __contextualize(__null_iter()) if $k < 0;
+	return __contextualize(__once_iter()) if $k == 0;
+	if ($k > @$data) {
 		carp("Parameter k is greater than the size of data");
 		return __contextualize(__null_iter());
 	}
-
-	return __contextualize(__once_iter()) if $k == 0;
 
     my @indices = 0..($k-1);
     my $iter = Algorithm::Combinatorics::Iterator->new(sub {
@@ -50,11 +50,7 @@ sub combinations_with_repetition {
     my ($data, $k) = @_;
 	__check_params($data, $k);
 
-	if ($k < 0) {
-		carp("Parameter k is negative");
-		return __contextualize(__null_iter());
-	}
-
+	return __contextualize(__null_iter()) if $k < 0;
 	return __contextualize(__once_iter()) if $k == 0;
 
     my @indices = (0) x $k;
@@ -70,15 +66,12 @@ sub variations {
     my ($data, $k) = @_;
 	__check_params($data, $k);
 
-	if ($k < 0) {
-		carp("Parameter k is negative");
-		return __contextualize(__null_iter());
-	} elsif ($k > @$data) {
+	return __contextualize(__null_iter()) if $k < 0;
+	return __contextualize(__once_iter()) if $k == 0;
+	if ($k > @$data) {
 		carp("Parameter k is greater than the size of data");
 		return __contextualize(__null_iter());
 	}
-
-	return __contextualize(__once_iter()) if $k == 0;
 
     # permutations() is more efficient because it knows
     # all indices are always used
@@ -92,17 +85,14 @@ sub variations {
 
     return __contextualize($iter);
 }
+*tuples = \&variations;
 
 
 sub variations_with_repetition {
     my ($data, $k) = @_;
 	__check_params($data, $k);
 
-	if ($k < 0) {
-		carp("Parameter k is negative");
-		return __contextualize(__null_iter());
-	}
-
+	return __contextualize(__null_iter()) if $k < 0;
 	return __contextualize(__once_iter()) if $k == 0;
 
     my @indices = (0) x $k;
@@ -112,17 +102,14 @@ sub variations_with_repetition {
 
     return __contextualize($iter);
 }
+*tuples_with_repetition = \&variations_with_repetition;
 
 
 sub __variations_with_repetition_gray_code {
     my ($data, $k) = @_;
 	__check_params($data, $k);
 
-	if ($k < 0) {
-		carp("Parameter k is negative");
-		return __contextualize(__null_iter());
-	}
-
+	return __contextualize(__null_iter()) if $k < 0;
 	return __contextualize(__once_iter()) if $k == 0;
 
     my @indices        = (0) x $k;
@@ -171,6 +158,7 @@ sub __permutations_heap {
     return __contextualize($iter);
 }
 
+
 sub derangements {
 	my ($data) = @_;
 	__check_params($data, 0);
@@ -188,6 +176,7 @@ sub derangements {
     return __contextualize($iter);
 }
 
+
 sub __check_params {
 	my ($data, $k) = @_;
 	if (not defined $data) {
@@ -201,6 +190,8 @@ sub __check_params {
 	if (!defined($type) || $type ne "ARRAY") {
 		croak("Parameter data is not an arrayref");
 	}
+	
+	carp("Parameter k is negative") if $k < 0;
 }
 
 
@@ -296,13 +287,11 @@ Algorithm::Combinatorics - Efficient generation of combinatorial sequences
 
 =head1 VERSION
 
-This documentation refers to Algorithm::Combinatorics version 0.13.
+This documentation refers to Algorithm::Combinatorics version 0.14.
 
 =head1 DESCRIPTION
 
-Algorithm::Combinatorics is an efficient generator of combinatorial sequences.
-Algorithms are selected from the literature (work in progress, see L</REFERENCES>),
-and written in C for speed.
+Algorithm::Combinatorics is an efficient generator of combinatorial sequences. Algorithms are selected from the literature (work in progress, see L</REFERENCES>). Iterators do not use recursion, nor stacks, and are written in C.
 
 Tuples are generated in lexicographic order.
 
@@ -314,6 +303,8 @@ Algorithm::Combinatorics provides these subroutines:
     derangements(\@data)
     variations(\@data, $k)
     variations_with_repetition(\@data, $k)
+    tuples(\@data, $k)
+    tuples_with_repetition(\@data, $k)
     combinations(\@data, $k)
     combinations_with_repetition(\@data, $k)
 
@@ -323,20 +314,23 @@ All of them are context-sensitive:
 
 =item *
 
-In scalar context the subroutines return an iterator that responds to the C<next()> method. Using this object you can iterate over the sequence of tuples one by one this way:
+In scalar context subroutines return an iterator that responds to the C<next()> method. Using this object you can iterate over the sequence of tuples one by one this way:
 
     my $iter = combinations(\@data, $k);
     while (my $c = $iter->next) {
         # ...
     }
 
-The C<next()> method returns an arrayref to the next tuple, if any, or C<undef> if the sequence is exhausted.
+The C<next()> method returns an arrayref to the next tuple, if any, or C<undef> if the
+sequence is exhausted.
 
-Since no recursion and no stacks are used the memory usage is minimal. Thus, we can iterate over sequences of virtually any size.
+Memory usage is minimal, no recursion and no stacks are involved.
+
 
 =item *
 
-In list context the subroutines slurp the entire set of tuples. This behaviour is offered for convenience, but take into account that the resulting array may be really huge:
+In list context subroutines slurp the entire set of tuples. This behaviour is offered
+for convenience, but take into account that the resulting array may be really huge:
 
     my @all_combinations = combinations(\@data, $k);
 
@@ -362,8 +356,8 @@ The number of permutations of C<n> elements is:
 
 The derangements of C<@data> are those reorderings that have no element
 in its original place. In jargon those are the permutations of C<@data>
-which have no fixed point. For example, the derangements of C<@data =
-(1, 2, 3)> are:
+with no fixed points. For example, the derangements of C<@data = (1, 2,
+3)> are:
 
     (2, 3, 1)
     (3, 1, 2)
@@ -393,7 +387,7 @@ Note that
 is equivalent to
 
     variations(\@data, scalar @data);
-
+    
 The number of variations of C<n> elements taken in groups of C<k> is:
 
     v(n, k) = 1,                        if k = 0
@@ -427,6 +421,17 @@ Note that C<$k> can be greater than the length of C<@data>. For example, for C<@
 The number of variations with repetition of C<n> elements taken in groups of C<< k >= 0 >> is:
 
     vr(n, k) = n**k
+
+
+=head2 tuples(\@data, $k)
+
+This is an alias for C<variations>, documented above.
+
+
+=head2 tuples_with_repetition(\@data, $k)
+
+This is an alias for C<variations_with_repetition>, documented above.
+
 
 =head2 combinations(\@data, $k)
 
@@ -581,6 +586,8 @@ L<Math::Combinatorics> is a pure Perl module that offers similar features.
 =head1 REFERENCES
 
 [1] Donald E. Knuth, I<The Art of Computer Programming, Volume 4, Fascicle 2: Generating All Tuples and Permutations>. Addison Wesley Professional, 2005. ISBN 0201853930.
+
+[2] Donald E. Knuth, I<The Art of Computer Programming, Volume 4, Fascicle 3: Generating All Combinations and Partitions>. Addison Wesley Professional, 2005. ISBN 0201853949.
 
 =head1 AUTHOR
 

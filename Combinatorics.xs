@@ -206,7 +206,7 @@ int __next_permutation(SV* tuple_avptr)
     if (j == -1)
         return -1;
 
-    /* [Increase a(j).] Find the rightmost element a(h) greater than a(j). */
+    /* [Increase a(j).] Find the rightmost element a(h) greater than a(j) and swap them. */
     aj = GETIV(tuple, j);
     for (h = max_n; aj > GETIV(tuple, h); --h)
         ;
@@ -246,17 +246,17 @@ int __next_permutation_heap(SV* a_avptr, SV* c_avptr)
 }
 
 
-/*
+/**
  * The only algorithms I have found by now are either recursive, or a
- * wrapper around permutations() that loops over all the elements to
- * jumps over permutations with fixed-points.
+ * naive wrapper around permutations() that loops over all of them and
+ * discards the ones with fixed-points.
  *
  * We take here a mixed-approach, which consists on starting with the
  * algorithm in __next_permutation() and tweak a couple of places that
  * allow us to skip a significant number of permutations sometimes.
  *
- * Benchmarking shows this subroutine makes derangements() be more than
- * two an a half times faster than permutations().
+ * Benchmarking shows this subroutine makes derangements() more than
+ * two and a half times faster than permutations() for n = 8.
  */
 int __next_derangement(SV* tuple_avptr)
 {
@@ -267,38 +267,42 @@ int __next_derangement(SV* tuple_avptr)
     max_n = av_len(tuple);
     min_j = max_n;
 
-    while (1) {
+    THERE_IS_A_FIXED_POINT:
+    /* Find the element a(j) behind the longest decreasing tail. */
+    for (j = max_n-1; j >= 0 && GETIV(tuple, j) > GETIV(tuple, j+1); --j)
+          ;
+    if (j == -1)
+        return -1;
 
-         /* [Find j.] Find the element a(j) behind the longest decreasing tail. */
-         for (j = max_n-1; j >= 0 && GETIV(tuple, j) > GETIV(tuple, j+1); --j)
-              ;
-         if (j == -1)
-              return -1;
+    if (min_j > j)
+        min_j = j;
 
-         if (min_j > j)
-              min_j = j;
+    /* Find the rightmost element a(h) greater than a(j) and swap them. */
+    aj = GETIV(tuple, j);
+    for (h = max_n; aj > GETIV(tuple, h); --h)
+        ;
+    __swap(tuple, j, h);
 
-         /* [Increase a(j).] Find the rightmost element a(h) greater than a(j). */
-         aj = GETIV(tuple, j);
-         for (h = max_n; aj > GETIV(tuple, h); --h)
-              ;
-         __swap(tuple, j, h);
+    /* If a(h) was j leave the tail in decreasing order and try again. */
+    if (GETIV(tuple, j) == j)
+        goto THERE_IS_A_FIXED_POINT;
 
-         if (GETIV(tuple, j) == j)
-              continue;
+    /* I tried an alternative approach that would in theory avoid the
+    generation of some permutations with fixed-points: keeping track of
+    the leftmost fixed-point, and reversing the elements to its right.
+    But benchmarks up to n = 11 showed no difference whatsoever.
+    Thus, I left this version, which is simpler.
+    
+    That n = 11 does not mean there was a difference for n = 12, it
+    means I stopped benchmarking at n = 11. */
 
-         /* [Reverse a(j+1)...a(max_n)] Reverse the tail. */
-         for (k = j+1, h = max_n; k < h; ++k, --h)
-              __swap(tuple, k, h);
+    /* Otherwise reverse the tail and return if there's no fixed point. */
+    for (k = j+1, h = max_n; k < h; ++k, --h)
+        __swap(tuple, k, h);
+    for (k = max_n; k > min_j; --k)
+        if (GETIV(tuple, k) == k)
+            goto THERE_IS_A_FIXED_POINT;
 
-         for (k = max_n; k > min_j; --k)
-              if (GETIV(tuple, k) == k)
-                   break;
-         if (k == min_j)
-              break;
-    }
-
-    /* Done. */
     return 1;
 }
 
