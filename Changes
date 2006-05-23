@@ -1,5 +1,12 @@
 Revision history for Algorithm-Combinatorics
 
+0.15 May 23 2006
+
+    * Added partitions().
+
+    * Added some comments.
+
+
 0.14 December 19 2005
 
     * Small rewordings in POD.

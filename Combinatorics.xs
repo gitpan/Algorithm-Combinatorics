@@ -15,6 +15,7 @@
 #include "XSUB.h"
 
 #define UPDATE(av, i, n)   (SvIVX(AvARRAY(av)[i]) = n)
+#define INCREMENT(av, i)   (++SvIVX(AvARRAY(av)[i]))
 #define GETIV(av, i)       (SvIVX(AvARRAY(av)[i]))
 #define GETAV(avptr)       ((AV*) SvRV(avptr))
 
@@ -306,6 +307,79 @@ int __next_derangement(SV* tuple_avptr)
     return 1;
 }
 
+/*
+ * This is a transcription of algorithm 3 from [3].
+ * 
+ * It is a classical approach based on restricted growth strings, which are
+ * introduced in the paper.
+ */
+int __next_partition(SV* k_avptr, SV* M_avptr)
+{
+    AV* k = GETAV(k_avptr); /* follows notation in [3] */
+    AV* M = GETAV(M_avptr); /* follows notation in [3] */
+    int i, j;
+    IV mi;
+    I32 len_k;
+    
+    len_k = av_len(k);
+    for (i = len_k; i > 0; --i) {
+        if (GETIV(k, i) <= GETIV(M, i-1)) {
+            INCREMENT(k, i);
+            
+            if (GETIV(k, i) > GETIV(M, i))
+                UPDATE(M, i, GETIV(k, i));
+                
+            mi = GETIV(M, i);
+            for (j = i+1; j <= len_k; ++j) {
+                UPDATE(k, j, 0);
+                UPDATE(M, j, mi);
+            }
+            return i;
+        }
+    }
+    
+    return -1;
+}
+
+/*
+ * This is a transcription of algorithm 8 from [3].
+ *
+ * It is an adaptation of the previous one.
+ */
+int __next_partition_of_size_p(SV* k_avptr, SV* M_avptr, int p)
+{
+    AV* k = GETAV(k_avptr); /* follows notation in [3] */
+    AV* M = GETAV(M_avptr); /* follows notation in [3] */
+    int i, j;
+    IV mi, x;
+    I32 len_k, n_minus_p;
+    
+    len_k = av_len(k);
+    for (i = len_k; i > 0; --i) {
+        if (GETIV(k, i) < p-1 && GETIV(k, i) <= GETIV(M, i-1)) {
+            INCREMENT(k, i);
+            
+            if (GETIV(k, i) > GETIV(M, i))
+                UPDATE(M, i, GETIV(k, i));
+
+            n_minus_p = len_k + 1 - p;
+            mi = GETIV(M, i);
+            x = n_minus_p + mi;
+            for (j = i+1; j <= x; ++j) {
+                UPDATE(k, j, 0);
+                UPDATE(M, j, mi);
+            }
+            for (j = x+1; j <= len_k; ++j) {
+                UPDATE(k, j, j - n_minus_p);
+                UPDATE(M, j, j - n_minus_p);
+            }
+            return i;
+        }
+    }
+    
+    return -1;
+}
+
 
 /** -------------------------------------------------------------------
  *
@@ -356,3 +430,14 @@ __next_permutation_heap(a_avptr, c_avptr)
 int
 __next_derangement(tuple_avptr)
     SV* tuple_avptr
+
+int
+__next_partition(k_avptr, M_avptr)
+  SV* k_avptr
+  SV* M_avptr
+
+int
+__next_partition_of_size_p(k_avptr, M_avptr, p)
+SV* k_avptr
+SV* M_avptr
+int p

@@ -3,7 +3,7 @@ package Algorithm::Combinatorics;
 use 5.006002;
 use strict;
 
-our $VERSION = '0.14';
+our $VERSION = '0.15';
 
 use XSLoader;
 XSLoader::load('Algorithm::Combinatorics', $VERSION);
@@ -21,6 +21,7 @@ our @EXPORT_OK = qw(
     tuples_with_repetition
     permutations
     derangements
+    partitions
 );
 
 our %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
@@ -28,14 +29,14 @@ our %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
 
 sub combinations {
     my ($data, $k) = @_;
-	__check_params($data, $k);
+    __check_params($data, $k);
 
-	return __contextualize(__null_iter()) if $k < 0;
-	return __contextualize(__once_iter()) if $k == 0;
-	if ($k > @$data) {
-		carp("Parameter k is greater than the size of data");
-		return __contextualize(__null_iter());
-	}
+    return __contextualize(__null_iter()) if $k < 0;
+    return __contextualize(__once_iter()) if $k == 0;
+    if ($k > @$data) {
+        carp("Parameter k is greater than the size of data");
+        return __contextualize(__null_iter());
+    }
 
     my @indices = 0..($k-1);
     my $iter = Algorithm::Combinatorics::Iterator->new(sub {
@@ -48,10 +49,10 @@ sub combinations {
 
 sub combinations_with_repetition {
     my ($data, $k) = @_;
-	__check_params($data, $k);
+    __check_params($data, $k);
 
-	return __contextualize(__null_iter()) if $k < 0;
-	return __contextualize(__once_iter()) if $k == 0;
+    return __contextualize(__null_iter()) if $k < 0;
+    return __contextualize(__once_iter()) if $k == 0;
 
     my @indices = (0) x $k;
     my $iter = Algorithm::Combinatorics::Iterator->new(sub {
@@ -64,14 +65,14 @@ sub combinations_with_repetition {
 
 sub variations {
     my ($data, $k) = @_;
-	__check_params($data, $k);
+    __check_params($data, $k);
 
-	return __contextualize(__null_iter()) if $k < 0;
-	return __contextualize(__once_iter()) if $k == 0;
-	if ($k > @$data) {
-		carp("Parameter k is greater than the size of data");
-		return __contextualize(__null_iter());
-	}
+    return __contextualize(__null_iter()) if $k < 0;
+    return __contextualize(__once_iter()) if $k == 0;
+    if ($k > @$data) {
+        carp("Parameter k is greater than the size of data");
+        return __contextualize(__null_iter());
+    }
 
     # permutations() is more efficient because it knows
     # all indices are always used
@@ -90,10 +91,10 @@ sub variations {
 
 sub variations_with_repetition {
     my ($data, $k) = @_;
-	__check_params($data, $k);
+    __check_params($data, $k);
 
-	return __contextualize(__null_iter()) if $k < 0;
-	return __contextualize(__once_iter()) if $k == 0;
+    return __contextualize(__null_iter()) if $k < 0;
+    return __contextualize(__once_iter()) if $k == 0;
 
     my @indices = (0) x $k;
     my $iter = Algorithm::Combinatorics::Iterator->new(sub {
@@ -107,10 +108,10 @@ sub variations_with_repetition {
 
 sub __variations_with_repetition_gray_code {
     my ($data, $k) = @_;
-	__check_params($data, $k);
+    __check_params($data, $k);
 
-	return __contextualize(__null_iter()) if $k < 0;
-	return __contextualize(__once_iter()) if $k == 0;
+    return __contextualize(__null_iter()) if $k < 0;
+    return __contextualize(__once_iter()) if $k == 0;
 
     my @indices        = (0) x $k;
     my @focus_pointers = 0..$k; # yeah, length $k+1
@@ -129,41 +130,41 @@ sub __variations_with_repetition_gray_code {
 
 
 sub permutations {
-	my ($data) = @_;
-	__check_params($data, 0);
+    my ($data) = @_;
+    __check_params($data, 0);
 
-	return __contextualize(__once_iter()) if @$data == 0;
+    return __contextualize(__once_iter()) if @$data == 0;
 
     my @indices = 0..(@$data-1);
     my $iter = Algorithm::Combinatorics::Iterator->new(sub {
         __next_permutation(\@indices) == -1 ? undef : [ @{$data}[@indices] ];
-	}, [ @{$data}[@indices] ]);
+    }, [ @{$data}[@indices] ]);
 
     return __contextualize($iter);
 }
 
 
 sub __permutations_heap {
-	my ($data) = @_;
-	__check_params($data, 0);
+    my ($data) = @_;
+    __check_params($data, 0);
 
-	return __contextualize(__once_iter()) if @$data == 0;
+    return __contextualize(__once_iter()) if @$data == 0;
 
     my @a = 0..(@$data-1);
     my @c = (0) x (@$data+1); # yeah, there's an spurious $c[0] to make the notation coincide
     my $iter = Algorithm::Combinatorics::Iterator->new(sub {
         __next_permutation_heap(\@a, \@c) == -1 ? undef : [ @{$data}[@a] ];
-	}, [ @{$data}[@a] ]);
+    }, [ @{$data}[@a] ]);
 
     return __contextualize($iter);
 }
 
 
 sub derangements {
-	my ($data) = @_;
-	__check_params($data, 0);
+    my ($data) = @_;
+    __check_params($data, 0);
 
-	return __contextualize(__once_iter()) if @$data == 0;
+    return __contextualize(__once_iter()) if @$data == 0;
     return __contextualize(__null_iter()) if @$data == 1;
 
     my @indices = 0..(@$data-1);
@@ -171,30 +172,115 @@ sub derangements {
     @indices[-1, -2] = @indices[-2, -1] if @$data % 2;
     my $iter = Algorithm::Combinatorics::Iterator->new(sub {
         __next_derangement(\@indices) == -1 ? undef : [ @{$data}[@indices] ];
-	}, [ @{$data}[@indices] ]);
+    }, [ @{$data}[@indices] ]);
 
     return __contextualize($iter);
 }
 
 
-sub __check_params {
-	my ($data, $k) = @_;
-	if (not defined $data) {
-		croak("Missing parameter data");
-	}
-	if (not defined $k) {
-		croak("Missing parameter k");
-	}
+sub partitions {
+    my ($data, $k) = @_;
+    if (defined $k) {
+        __partitions_of_size_p($data, $k);
+    } else {
+        __partitions_of_all_sizes($data);
+    }
+}
 
-	my $type = reftype $data;
-	if (!defined($type) || $type ne "ARRAY") {
-		croak("Parameter data is not an arrayref");
-	}
-	
-	carp("Parameter k is negative") if $k < 0;
+sub __partitions_of_all_sizes {
+    my ($data) = @_;
+    __check_params($data, 0);
+    
+    return __contextualize(__once_iter()) if @$data == 0;
+    
+    my @k = (0) x @$data;
+    my @M = (0) x @$data;
+    my $iter = Algorithm::Combinatorics::Iterator->new(sub {
+       __next_partition(\@k, \@M) == -1 ? undef : __slice_partition(\@k, \@M, $data); 
+    }, __slice_partition(\@k, \@M, $data));
+    
+    return __contextualize($iter);
+}
+
+# We use @k and $p here and sacrifice the uniform usage of $k
+# to follow the notation in [3].
+sub __partitions_of_size_p {
+    my ($data, $p) = @_;
+    __check_params($data, $p);
+    
+    return __contextualize(__null_iter()) if $p < 0;
+    return __contextualize(__once_iter()) if @$data == 0 && $p == 0;
+    return __contextualize(__null_iter()) if $p == 0;
+
+    if ($p > @$data) {
+        carp("Parameter k is greater than the size of data");
+        return __contextualize(__null_iter());
+    }
+    
+    my $q = @$data - $p + 1;
+    my @k = (0) x $q;
+    my @M = (0) x $q;
+    push @k, $_ - $q + 1 for $q..(@$data-1);
+    push @M, $_ - $q + 1 for $q..(@$data-1);
+    my $iter = Algorithm::Combinatorics::Iterator->new(sub {
+       __next_partition_of_size_p(\@k, \@M, $p) == -1 ? undef : __slice_partition_of_size_p(\@k, $p, $data); 
+    }, __slice_partition_of_size_p(\@k, $p, $data));
+    
+    return __contextualize($iter);
 }
 
 
+sub __slice_partition {
+    my ($k, $M, $data) = @_;
+    my @partition = ();
+    my $size = $M->[-1] - $M->[0] + 1;
+    push @partition, [] for 1..$size;
+    my $i = 0;
+    foreach my $x (@$data) {
+        push @{$partition[$k->[$i]]}, $x;
+        ++$i;
+    }
+    return \@partition;
+}
+
+# We use @k and $p here and sacrifice the uniform usage of $k
+# to follow the notation in [3].
+sub __slice_partition_of_size_p {
+    my ($k, $p, $data) = @_;
+    my @partition = ();
+    push @partition, [] for 1..$p;
+    my $i = 0;
+    foreach my $x (@$data) {
+        push @{$partition[$k->[$i]]}, $x;
+        ++$i;
+    }
+    return \@partition;
+}
+
+
+sub __check_params {
+    my ($data, $k) = @_;
+    if (not defined $data) {
+        croak("Missing parameter data");
+    }
+    if (not defined $k) {
+        croak("Missing parameter k");
+    }
+
+    my $type = reftype $data;
+    if (!defined($type) || $type ne "ARRAY") {
+        croak("Parameter data is not an arrayref");
+    }
+    
+    carp("Parameter k is negative") if $k < 0;
+}
+
+
+# Given an iterator that responds to the next() method this
+# subrutine returns the iterator in scalar context, loops
+# over the iterator to build and return an array of results
+# in list context, and does nothing but issue a warning in
+# void context.
 sub __contextualize {
     my $iter = shift;
     my $w = wantarray;
@@ -214,14 +300,13 @@ sub __contextualize {
     }
 }
 
-
 sub __null_iter {
-	return Algorithm::Combinatorics::Iterator->new(sub { return });
+    return Algorithm::Combinatorics::Iterator->new(sub { return });
 }
 
 
 sub __once_iter {
-	Algorithm::Combinatorics::Iterator->new(sub { return }, []);
+    Algorithm::Combinatorics::Iterator->new(sub { return }, []);
 }
 
 
@@ -229,20 +314,24 @@ sub __once_iter {
 # This is a bit dirty by now, the objective is to be able to
 # pass an initial sequence to the iterator and avoid a test
 # in each iteration saying whether the sequence was already
-# returned or not.
+# returned or not, since that might potentially be done a lot
+# of times.
+#
+# The solution is to return an iterator that has a first sequence
+# associated. The first time you call it that sequence is returned
+# and the iterator rebless itself to become just a wrapped coderef.
 #
 # Note that the public contract is that responds to next(), no
 # iterator class name is documented.
-
 package Algorithm::Combinatorics::Iterator;
 
 sub new {
     my ($class, $coderef, $first_seq) = @_;
-	if (defined $first_seq) {
-    	return bless [$coderef, $first_seq], $class;
+    if (defined $first_seq) {
+        return bless [$coderef, $first_seq], $class;
     } else {
-		return bless $coderef, 'Algorithm::Combinatorics::JustCoderef';
-	}
+        return bless $coderef, 'Algorithm::Combinatorics::JustCoderef';
+    }
 }
 
 sub next {
@@ -255,8 +344,8 @@ sub next {
 package Algorithm::Combinatorics::JustCoderef;
 
 sub next {
-	my ($self) = @_;
-	return $self->();
+    my ($self) = @_;
+    return $self->();
 }
 
 
@@ -287,7 +376,7 @@ Algorithm::Combinatorics - Efficient generation of combinatorial sequences
 
 =head1 VERSION
 
-This documentation refers to Algorithm::Combinatorics version 0.14.
+This documentation refers to Algorithm::Combinatorics version 0.15.
 
 =head1 DESCRIPTION
 
@@ -307,6 +396,7 @@ Algorithm::Combinatorics provides these subroutines:
     tuples_with_repetition(\@data, $k)
     combinations(\@data, $k)
     combinations_with_repetition(\@data, $k)
+    partitions(\@data[, $k])
 
 All of them are context-sensitive:
 
@@ -481,6 +571,36 @@ The number of combinations with repetition of C<n> elements taken in groups of C
 
     n+k-1 over k = (n+k-1)!/(k!*(n-1)!)
 
+
+=head2 partitions(\@data[, $k])
+
+A partition of C<@data> is a division of C<@data> in separate pieces. Technically that's a set of subsets of C<@data> which are non-empty, disjoint, and whose union is C<@data>. For example, the partitions of C<@data = (1, 2, 3)> are:
+
+    ((1, 2, 3))
+    ((1, 2), (3))
+    ((1, 3), (2))
+    ((1), (2, 3))
+    ((1), (2), (3))
+
+This subroutine returns in consequence tuples of tuples. The top-level tuple (an arrayref) represents the partition itself, whose elements are tuples (arrayrefs) in turn, each one representing a subset of C<@data>.
+
+The number of partitions of a set of C<n> elements are known as Bell numbers, and satisfy the recursion:
+
+    B(0) = 1
+    B(n+1) = (n over 0)B(0) + (n over 1)B(1) + ... + (n over n)B(n)
+
+If you pass the optional parameter C<$k>, the subroutine generates only partitions of size C<$k>. This uses an specific algorithm for partitions of known size, which is more efficient than generating all partitions and filtering them by size.
+
+Note that in that case the subsets themselves may have several sizes, it is the number of elements I<of the partition> which is C<$k>. For instance if C<@data> has 5 elements there are partitions of size 2 that consist of a subset of size 2 and its complement of size 3; and partitions of size 2 that consist of a subset of size 1 and its complement of size 4. In both cases the partitions have the same size, they have two elements.
+
+The number of partitions of size C<k> of a set of C<n> elements are known as Stirling numbers of the second kind, and satisfy the recursion:
+
+    S(0, 0) = 1
+    S(n, 0) = 0 if n > 0
+    S(n, 1) = S(n, n) = 1
+    S(n, k) = S(n-1, k-1) + kS(n-1, k)
+
+
 =head1 CORNER CASES
 
 Since version 0.05 subroutines are more forgiving for unsual values of C<$k>:
@@ -589,13 +709,15 @@ L<Math::Combinatorics> is a pure Perl module that offers similar features.
 
 [2] Donald E. Knuth, I<The Art of Computer Programming, Volume 4, Fascicle 3: Generating All Combinations and Partitions>. Addison Wesley Professional, 2005. ISBN 0201853949.
 
+[3] Michael Orlov, I<Efficient Generation of Set Partitions>, L<http://www.informatik.uni-ulm.de/ni/Lehre/WS03/DMM/Software/partitions.pdf>.
+
 =head1 AUTHOR
 
 Xavier Noria (FXN), E<lt>fxn@cpan.orgE<gt>
 
 =head1 COPYRIGHT & LICENSE
 
-Copyright 2005 Xavier Noria, all rights reserved.
+Copyright 2005-2006 Xavier Noria, all rights reserved.
 
 This program is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.

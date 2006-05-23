@@ -15,5 +15,7 @@ t/05_tuples.t
 t/06_tuples_with_repetition.t
 t/07_permutations.t
 t/08_derangements.t
+t/09_partitions.t
+t/10_partitions_of_size_p.t
 t/pod-coverage.t
 t/pod.t
