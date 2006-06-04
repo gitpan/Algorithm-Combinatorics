@@ -3,7 +3,7 @@ package Algorithm::Combinatorics;
 use 5.006002;
 use strict;
 
-our $VERSION = '0.15';
+our $VERSION = '0.16';
 
 use XSLoader;
 XSLoader::load('Algorithm::Combinatorics', $VERSION);
@@ -20,6 +20,7 @@ our @EXPORT_OK = qw(
     tuples
     tuples_with_repetition
     permutations
+    circular_permutations
     derangements
     partitions
 );
@@ -144,6 +145,21 @@ sub permutations {
 }
 
 
+sub circular_permutations {
+    my ($data) = @_;
+    __check_params($data, 0);
+    
+    return __contextualize(__once_iter())         if @$data == 0;
+    return __contextualize(__once_iter([@$data])) if @$data == 1 || @$data == 2;
+    
+    my @indices = 1..(@$data-1);
+    my $iter = Algorithm::Combinatorics::Iterator->new(sub {
+        __next_permutation(\@indices) == -1 ? undef : [ @{$data}[0, @indices] ];
+    }, [ @{$data}[0, @indices] ]);
+
+    return __contextualize($iter);
+}
+
 sub __permutations_heap {
     my ($data) = @_;
     __check_params($data, 0);
@@ -233,7 +249,7 @@ sub __partitions_of_size_p {
 sub __slice_partition {
     my ($k, $M, $data) = @_;
     my @partition = ();
-    my $size = $M->[-1] - $M->[0] + 1;
+    my $size = $M->[-1] + 1; # $M->[0] is always 0 in our code
     push @partition, [] for 1..$size;
     my $i = 0;
     foreach my $x (@$data) {
@@ -306,7 +322,9 @@ sub __null_iter {
 
 
 sub __once_iter {
-    Algorithm::Combinatorics::Iterator->new(sub { return }, []);
+    my $tuple = shift;
+    $tuple ? Algorithm::Combinatorics::Iterator->new(sub { return }, $tuple) :
+             Algorithm::Combinatorics::Iterator->new(sub { return }, []);
 }
 
 
@@ -376,7 +394,7 @@ Algorithm::Combinatorics - Efficient generation of combinatorial sequences
 
 =head1 VERSION
 
-This documentation refers to Algorithm::Combinatorics version 0.15.
+This documentation refers to Algorithm::Combinatorics version 0.16.
 
 =head1 DESCRIPTION
 
@@ -389,6 +407,7 @@ Tuples are generated in lexicographic order.
 Algorithm::Combinatorics provides these subroutines:
 
     permutations(\@data)
+    circular_permutations(\@data)
     derangements(\@data)
     variations(\@data, $k)
     variations_with_repetition(\@data, $k)
@@ -416,7 +435,6 @@ sequence is exhausted.
 
 Memory usage is minimal, no recursion and no stacks are involved.
 
-
 =item *
 
 In list context subroutines slurp the entire set of tuples. This behaviour is offered
@@ -425,6 +443,7 @@ for convenience, but take into account that the resulting array may be really hu
     my @all_combinations = combinations(\@data, $k);
 
 =back
+
 
 =head2 permutations(\@data)
 
@@ -442,6 +461,28 @@ The number of permutations of C<n> elements is:
     n! = 1,                  if n = 0
     n! = n*(n-1)*...*1,      if n > 0
 
+See some values at L<http://www.research.att.com/~njas/sequences/A000142>.
+
+
+=head2 circular_permutations(\@data)
+
+The circular permutations of C<@data> are its evenly distributed arrangements around a circle, where two arrangements are equal modulus rotations. Think possible arrangements of people around a circular table for dinner according to whom they have to their right and left, rather that the exact chair they sit on.
+
+For example the circular permutations of C<@data = (1, 2, 3, 4)> are:
+
+    (1, 2, 3, 4)
+    (1, 2, 4, 3)
+    (1, 3, 2, 4)
+    (1, 3, 4, 2)
+    (1, 4, 2, 3)
+    (1, 4, 3, 2)
+
+The number of circular permutations of C<n> elements is:
+
+        n! = 1,                      if 0 <= n <= 1
+    (n-1)! = (n-1)*(n-2)*...*1,      if n > 1
+
+
 =head2 derangements(\@data)
 
 The derangements of C<@data> are those reorderings that have no element
@@ -456,6 +497,9 @@ The number of derangements of C<n> elements is:
 
     d(n) = 1,                       if n = 0
     d(n) = n*d(n-1) + (-1)**n,      if n > 0
+
+See some values at L<http://www.research.att.com/~njas/sequences/A000166>.
+
 
 =head2 variations(\@data, $k)
 
@@ -482,6 +526,7 @@ The number of variations of C<n> elements taken in groups of C<k> is:
 
     v(n, k) = 1,                        if k = 0
     v(n, k) = n*(n-1)*...*(n-k+1),      if 0 < k <= n
+
 
 =head2 variations_with_repetition(\@data, $k)
 
@@ -538,6 +583,7 @@ The number of combinations of C<n> elements taken in groups of C<< 0 <= k <= n >
 
     n choose k = n!/(k!*(n-k)!)
 
+
 =head2 combinations_with_repetition(\@data, $k);
 
 The combinations of length C<$k> of an array C<@data> are all the bags of size C<$k> consisting of elements of C<@data>, with repetitions. For example, for C<@data = (1, 2, 3)> and C<$k = 2>:
@@ -588,6 +634,8 @@ The number of partitions of a set of C<n> elements are known as Bell numbers, an
 
     B(0) = 1
     B(n+1) = (n over 0)B(0) + (n over 1)B(1) + ... + (n over n)B(n)
+
+See some values at L<http://www.research.att.com/~njas/sequences/A000110>.
 
 If you pass the optional parameter C<$k>, the subroutine generates only partitions of size C<$k>. This uses an specific algorithm for partitions of known size, which is more efficient than generating all partitions and filtering them by size.
 

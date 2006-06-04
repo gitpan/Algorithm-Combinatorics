@@ -17,5 +17,6 @@ t/07_permutations.t
 t/08_derangements.t
 t/09_partitions.t
 t/10_partitions_of_size_p.t
+t/11_circular_permutations.t
 t/pod-coverage.t
 t/pod.t

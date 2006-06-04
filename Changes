@@ -1,5 +1,14 @@
 Revision history for Algorithm-Combinatorics
 
+0.16 June 5 2006
+
+    * Added circular_permutations().
+
+    * Added some pointers to The On-Line Encyclopedia of Integer Sequences
+
+    * Added a few more tests for partitions().
+
+
 0.15 May 23 2006
 
     * Added partitions().

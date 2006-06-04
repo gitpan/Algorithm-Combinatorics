@@ -67,3 +67,12 @@ $tester->__test(\@expected, ["foo", "bar", "baz"]);
     [["a"], ["b"], ["c"], ["d"]],
 );
 $tester->__test(\@expected, [qw(a b c d)]);
+
+# ---------------------------------------------------------------------
+
+my $n = 0;
+my $iter = partitions([1..9]);
+while (my $p = $iter->next) {
+    ++$n;
+}
+is($n, 21147, "");
