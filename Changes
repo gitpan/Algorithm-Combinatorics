@@ -1,5 +1,17 @@
 Revision history for Algorithm-Combinatorics
 
+0.20 June 6 2006
+
+    * Jumped version to 0.2x.
+
+    * Added pointer to Sloane's encyclopedia for the sequence of
+      numbers of circular permutations
+
+    * Added complete_permutations().
+
+    * Simplified explanation of circular permutations.
+
+
 0.16 June 5 2006
 
     * Added circular_permutations().

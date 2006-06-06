@@ -3,7 +3,7 @@ package Algorithm::Combinatorics;
 use 5.006002;
 use strict;
 
-our $VERSION = '0.16';
+our $VERSION = '0.20';
 
 use XSLoader;
 XSLoader::load('Algorithm::Combinatorics', $VERSION);
@@ -22,6 +22,7 @@ our @EXPORT_OK = qw(
     permutations
     circular_permutations
     derangements
+    complete_permutations
     partitions
 );
 
@@ -192,6 +193,8 @@ sub derangements {
 
     return __contextualize($iter);
 }
+
+*complete_permutations = \&derangements;
 
 
 sub partitions {
@@ -394,7 +397,7 @@ Algorithm::Combinatorics - Efficient generation of combinatorial sequences
 
 =head1 VERSION
 
-This documentation refers to Algorithm::Combinatorics version 0.16.
+This documentation refers to Algorithm::Combinatorics version 0.20.
 
 =head1 DESCRIPTION
 
@@ -409,6 +412,7 @@ Algorithm::Combinatorics provides these subroutines:
     permutations(\@data)
     circular_permutations(\@data)
     derangements(\@data)
+    complete_permutations(\@data)
     variations(\@data, $k)
     variations_with_repetition(\@data, $k)
     tuples(\@data, $k)
@@ -466,7 +470,7 @@ See some values at L<http://www.research.att.com/~njas/sequences/A000142>.
 
 =head2 circular_permutations(\@data)
 
-The circular permutations of C<@data> are its evenly distributed arrangements around a circle, where two arrangements are equal modulus rotations. Think possible arrangements of people around a circular table for dinner according to whom they have to their right and left, rather that the exact chair they sit on.
+The circular permutations of C<@data> are its arrangements around a circle, where only relative order of elements matter, rather than their actual position. Think possible arrangements of people around a circular table for dinner according to whom they have to their right and left, no matter the actual chair they sit on.
 
 For example the circular permutations of C<@data = (1, 2, 3, 4)> are:
 
@@ -481,6 +485,8 @@ The number of circular permutations of C<n> elements is:
 
         n! = 1,                      if 0 <= n <= 1
     (n-1)! = (n-1)*(n-2)*...*1,      if n > 1
+
+See a few numbers in a comment of L<http://www.research.att.com/~njas/sequences/A000142>.
 
 
 =head2 derangements(\@data)
@@ -499,6 +505,11 @@ The number of derangements of C<n> elements is:
     d(n) = n*d(n-1) + (-1)**n,      if n > 0
 
 See some values at L<http://www.research.att.com/~njas/sequences/A000166>.
+
+
+=head2 complete_permutations(\@data)
+
+This is an alias for C<derangements>, documented above.
 
 
 =head2 variations(\@data, $k)
