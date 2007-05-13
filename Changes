@@ -1,5 +1,11 @@
 Revision history for Algorithm-Combinatorics
 
+0.21 May 14 2007
+
+    * Added a directory with some benchmarks.
+
+    * A maintenance release to indicate the module is maintained.
+
 0.20 June 6 2006
 
     * Jumped version to 0.2x.

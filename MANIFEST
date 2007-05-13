@@ -21,3 +21,6 @@ t/11_circular_permutations.t
 t/12_complete_permutations.t
 t/pod-coverage.t
 t/pod.t
+benchmarks/combinations.pl
+benchmarks/permutations.pl
+benchmarks/derangements.pl

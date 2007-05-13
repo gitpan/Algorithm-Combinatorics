@@ -3,7 +3,7 @@ package Algorithm::Combinatorics;
 use 5.006002;
 use strict;
 
-our $VERSION = '0.20';
+our $VERSION = '0.21';
 
 use XSLoader;
 XSLoader::load('Algorithm::Combinatorics', $VERSION);
@@ -397,7 +397,7 @@ Algorithm::Combinatorics - Efficient generation of combinatorial sequences
 
 =head1 VERSION
 
-This documentation refers to Algorithm::Combinatorics version 0.20.
+This documentation refers to Algorithm::Combinatorics version 0.21.
 
 =head1 DESCRIPTION
 
@@ -761,6 +761,12 @@ L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Algorithm-Combinatorics>.
 =head1 SEE ALSO
 
 L<Math::Combinatorics> is a pure Perl module that offers similar features.
+
+=head1 BENCHMARKS
+
+There are some benchmarks in the F<benchmarks> directory of the distribution
+that compare the performance of this module to the pure Perl one mentioned
+above.
 
 =head1 REFERENCES
 
