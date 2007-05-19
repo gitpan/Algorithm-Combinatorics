@@ -3,7 +3,7 @@ package Algorithm::Combinatorics;
 use 5.006002;
 use strict;
 
-our $VERSION = '0.22';
+our $VERSION = '0.23';
 
 use XSLoader;
 XSLoader::load('Algorithm::Combinatorics', $VERSION);
@@ -397,7 +397,7 @@ Algorithm::Combinatorics - Efficient generation of combinatorial sequences
 
 =head1 VERSION
 
-This documentation refers to Algorithm::Combinatorics version 0.22.
+This documentation refers to Algorithm::Combinatorics version 0.23.
 
 =head1 DESCRIPTION
 
@@ -782,7 +782,7 @@ Xavier Noria (FXN), E<lt>fxn@cpan.orgE<gt>
 
 =head1 COPYRIGHT & LICENSE
 
-Copyright 2005-2006 Xavier Noria, all rights reserved.
+Copyright 2005-2007 Xavier Noria, all rights reserved.
 
 This program is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.

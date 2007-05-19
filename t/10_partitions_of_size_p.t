@@ -69,8 +69,8 @@ while (my $p = $iter->next) {
 is($n, 34105, "");
 
 $n = 0;
-$iter = partitions([1..10], 6);
+$iter = partitions([1..11], 4);
 while (my $p = $iter->next) {
     ++$n;
 }
-is($n, 22827, "");
+is($n, 145750, "");

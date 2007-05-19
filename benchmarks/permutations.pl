@@ -17,11 +17,11 @@ sub mperm {
     1 while $iter->next_permutation;
 }
 
-cmpthese(-5, {
+cmpthese(-10, {
     aperm => \&aperm,
     mperm => \&mperm,
 });
 
 #         Rate mperm aperm
-# mperm 12.2/s    --  -80%
-# aperm 61.5/s  405%    --
+# mperm 12.2/s    --  -78%
+# aperm 54.4/s  347%    --

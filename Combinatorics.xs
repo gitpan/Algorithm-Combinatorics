@@ -1,23 +1,25 @@
-/* -*- Mode: C -*- */
-
 /**
  * These subroutines implement the actual iterators.
  *
- * The real combinatorics are done in-place on a private array of
- * indices that is guaranteed to hold IVs. Once the next tuple has been
- * computed the corresponding slice of data is copied in the Perl side.
+ * The real combinatorics are done in-place on a private array of indices
+ * that is guaranteed to hold integers. We cannot assume they are IVs though,
+ * because in a few places in the Perl side there's some simple arithmetic
+ * that is enough to give NVs in 5.6.x.
  *
- * All the subroutines return -1 when there are no further tuples.
+ * Once the next tuple has been computed the corresponding slice of data is
+ * copied in the Perl side.
+ *
+ * All the subroutines return -1 when the sequence has been exhausted.
  */
 
 #include "EXTERN.h"
 #include "perl.h"
 #include "XSUB.h"
 
-#define UPDATE(av, i, n)   (SvIVX(AvARRAY(av)[i]) = n)
-#define INCREMENT(av, i)   (++SvIVX(AvARRAY(av)[i]))
-#define GETIV(av, i)       (SvIVX(AvARRAY(av)[i]))
-#define GETAV(avptr)       ((AV*) SvRV(avptr))
+#define SETIV(av, i, n) (sv_setiv(*av_fetch(av, i, 0), n))
+#define GETIV(av, i)    (SvIV(*av_fetch(av, i, 0)))
+#define INCR(av, i)     (SETIV(av, i, 1 + GETIV(av, i)))
+#define GETAV(avptr)    ((AV*) SvRV(avptr))
 
 
 /**
@@ -28,8 +30,8 @@
 void __swap(AV* av, int i, int j)
 {
     IV tmp = GETIV(av, i);
-    UPDATE(av, i, GETIV(av, j));
-    UPDATE(av, j, tmp);
+    SETIV(av, i, GETIV(av, j));
+    SETIV(av, j, tmp);
 }
 
 /**
@@ -48,12 +50,12 @@ int __next_combination(SV* tuple_avptr, int max_n)
     offset = max_n - len_tuple;
     for (i = len_tuple; i >= 0; --i) {
         e = *av_fetch(tuple, i, 0);
-        n = SvIVX(e);
+        n = SvIV(e);
         if (n < i + offset) {
-             SvIVX(e) = ++n;
-             for (j = i+1; j <= len_tuple; ++j)
-                  UPDATE(tuple, j, ++n);
-             return i;
+            sv_setiv(e, ++n);
+            for (j = i+1; j <= len_tuple; ++j)
+                SETIV(tuple, j, ++n);
+            return i;
         }
     }
 
@@ -75,10 +77,10 @@ int __next_combination_with_repetition(SV* tuple_avptr, int max_n)
     for (i = len_tuple; i >= 0; --i) {
         n = GETIV(tuple, i);
         if (n < max_n) {
-             ++n;
-             for (j = i; j <= len_tuple; ++j)
-                  UPDATE(tuple, j, n);
-             return i;
+            ++n;
+            for (j = i; j <= len_tuple; ++j)
+                SETIV(tuple, j, n);
+            return i;
         }
     }
 
@@ -89,6 +91,8 @@ int __next_combination_with_repetition(SV* tuple_avptr, int max_n)
 /**
  * This provisional implementation emulates what we do by hand, keeping
  * and array of booleans (used) to keep track of the indices in use.
+ * That is, used[n] == 1 if and only if tuple[i] == n for some i.
+ *
  */
 int __next_variation(SV* tuple_avptr, SV* used_avptr, int max_n)
 {
@@ -101,24 +105,27 @@ int __next_variation(SV* tuple_avptr, SV* used_avptr, int max_n)
 
     len_tuple = av_len(tuple);
     for (i = len_tuple; i >= 0; --i) {
+        /* from right to left, find the first position that can be incremented */
         e = *av_fetch(tuple, i, 0);
-        n = SvIVX(e);
-        UPDATE(used, n, 0);
-        while (n++ < max_n) {
-             if (!GETIV(used, n)) {
-                  SvIVX(e) = n;
-                  UPDATE(used, n, 1);
-                  for (j = i+1; j <= len_tuple; ++j) {
-                       n = -1;
-                       while (n++ < max_n) {
-                            if (GETIV(used, n) == 0) {
-                                 UPDATE(tuple, j, n);
-                                 UPDATE(used, n, 1);
-                                 break;
-                            }
-                       }
-                  }
-                  return i;
+        n = SvIV(e);
+        SETIV(used, n, 0);
+        while (++n <= max_n) {
+            if (!GETIV(used, n)) {
+                /* if we get here we nececessarily exit the subrutine, so forget about the outer while and for */
+                sv_setiv(e, n);
+                SETIV(used, n, 1);
+                for (j = i+1; j <= len_tuple; ++j) {
+                    /* from there to the right, fill the tuple with the lowest available numbers */
+                    n = -1;
+                    while (++n <= max_n) {
+                         if (!GETIV(used, n)) {
+                              SETIV(tuple, j, n);
+                              SETIV(used, n, 1);
+                              break;
+                         }
+                    }
+                }
+                return i;
              }
         }
     }
@@ -139,11 +146,11 @@ int __next_variation_with_repetition(SV* tuple_avptr, int max_n)
     len_tuple = av_len(tuple);
     for (i = len_tuple; i >= 0; --i) {
         e = *av_fetch(tuple, i, 0);
-        if (SvIVX(e) < max_n) {
-            ++SvIVX(e);
+        if (SvIV(e) < max_n) {
+            sv_setiv(e, 1 + SvIV(e));
             return i;
         }
-        SvIVX(e) = 0;
+        sv_setiv(e, 0);
     }
 
     return -1;
@@ -166,20 +173,20 @@ int __next_variation_with_repetition_gray_code(SV* tuple_avptr, SV* f_avptr, SV*
 
     /* [Choose j.] */
     j = GETIV(f, 0);
-    UPDATE(f, 0, 0);
+    SETIV(f, 0, 0);
 
     /* [Change coordinate j.] */
     if (j == n)
         return -1;
     else
-        UPDATE(tuple, j, GETIV(tuple, j) + GETIV(o, j));
+        SETIV(tuple, j, GETIV(tuple, j) + GETIV(o, j));
 
     /* [Reflect?] */
     aj = GETIV(tuple, j);
     if (aj == 0 || aj == max_m) {
-        UPDATE(o, j, -GETIV(o, j));
-        UPDATE(f, j, GETIV(f, j+1));
-        UPDATE(f, j+1, j+1);
+        SETIV(o, j, -GETIV(o, j));
+        SETIV(f, j, GETIV(f, j+1));
+        SETIV(f, j+1, j+1);
     }
 
     return j;
@@ -233,13 +240,13 @@ int __next_permutation_heap(SV* a_avptr, SV* c_avptr)
     n = av_len(a) + 1;
 
     for (k = 1, ck = GETIV(c, k); ck == k; ++k, ck = GETIV(c, k))
-        UPDATE(c, k, 0);
+        SETIV(c, k, 0);
 
     if (k == n)
         return -1;
 
     ++ck;
-    UPDATE(c, k, ck);
+    SETIV(c, k, ck);
 
     k % 2 == 0 ? __swap(a, k, 0) : __swap(a, k, ck-1);
 
@@ -293,7 +300,7 @@ int __next_derangement(SV* tuple_avptr)
     the leftmost fixed-point, and reversing the elements to its right.
     But benchmarks up to n = 11 showed no difference whatsoever.
     Thus, I left this version, which is simpler.
-    
+
     That n = 11 does not mean there was a difference for n = 12, it
     means I stopped benchmarking at n = 11. */
 
@@ -309,7 +316,7 @@ int __next_derangement(SV* tuple_avptr)
 
 /*
  * This is a transcription of algorithm 3 from [3].
- * 
+ *
  * It is a classical approach based on restricted growth strings, which are
  * introduced in the paper.
  */
@@ -320,24 +327,24 @@ int __next_partition(SV* k_avptr, SV* M_avptr)
     int i, j;
     IV mi;
     I32 len_k;
-    
+
     len_k = av_len(k);
     for (i = len_k; i > 0; --i) {
         if (GETIV(k, i) <= GETIV(M, i-1)) {
-            INCREMENT(k, i);
-            
+            INCR(k, i);
+
             if (GETIV(k, i) > GETIV(M, i))
-                UPDATE(M, i, GETIV(k, i));
-                
+                SETIV(M, i, GETIV(k, i));
+
             mi = GETIV(M, i);
             for (j = i+1; j <= len_k; ++j) {
-                UPDATE(k, j, 0);
-                UPDATE(M, j, mi);
+                SETIV(k, j, 0);
+                SETIV(M, j, mi);
             }
             return i;
         }
     }
-    
+
     return -1;
 }
 
@@ -353,30 +360,30 @@ int __next_partition_of_size_p(SV* k_avptr, SV* M_avptr, int p)
     int i, j;
     IV mi, x;
     I32 len_k, n_minus_p;
-    
+
     len_k = av_len(k);
     for (i = len_k; i > 0; --i) {
         if (GETIV(k, i) < p-1 && GETIV(k, i) <= GETIV(M, i-1)) {
-            INCREMENT(k, i);
-            
+            INCR(k, i);
+
             if (GETIV(k, i) > GETIV(M, i))
-                UPDATE(M, i, GETIV(k, i));
+                SETIV(M, i, GETIV(k, i));
 
             n_minus_p = len_k + 1 - p;
             mi = GETIV(M, i);
             x = n_minus_p + mi;
             for (j = i+1; j <= x; ++j) {
-                UPDATE(k, j, 0);
-                UPDATE(M, j, mi);
+                SETIV(k, j, 0);
+                SETIV(M, j, mi);
             }
             for (j = x+1; j <= len_k; ++j) {
-                UPDATE(k, j, j - n_minus_p);
-                UPDATE(M, j, j - n_minus_p);
+                SETIV(k, j, j - n_minus_p);
+                SETIV(M, j, j - n_minus_p);
             }
             return i;
         }
     }
-    
+
     return -1;
 }
 
@@ -433,11 +440,11 @@ __next_derangement(tuple_avptr)
 
 int
 __next_partition(k_avptr, M_avptr)
-  SV* k_avptr
-  SV* M_avptr
+    SV* k_avptr
+    SV* M_avptr
 
 int
 __next_partition_of_size_p(k_avptr, M_avptr, p)
-SV* k_avptr
-SV* M_avptr
-int p
+    SV* k_avptr
+    SV* M_avptr
+    int p

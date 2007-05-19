@@ -76,3 +76,10 @@ while (my $p = $iter->next) {
     ++$n;
 }
 is($n, 21147, "");
+
+$n = 0;
+$iter = partitions([1..10]);
+while (my $p = $iter->next) {
+    ++$n;
+}
+is($n, 115975, "");

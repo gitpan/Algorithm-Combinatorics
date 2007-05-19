@@ -5,7 +5,7 @@ use Algorithm::Combinatorics qw(derangements);
 use Math::Combinatorics;
 use Benchmark qw(cmpthese);
 
-our @data = 1..8;
+our @data = 1..7;
 
 sub ader {
    my $iter = derangements(\@data);
@@ -17,11 +17,11 @@ sub mder {
     1 while $iter->next_derangement;
 }
 
-cmpthese(-5, {
+cmpthese(-10, {
     ader => \&ader,
     mder => \&mder,
 });
 
 #        Rate  mder  ader
-# mder 1.45/s    --  -93%
-# ader 19.9/s 1272%    --
+# mder 11.9/s    --  -91%
+# ader  138/s 1063%    --

@@ -1,5 +1,14 @@
 Revision history for Algorithm-Combinatorics
 
+0.23
+
+    * We do not longer assume indices com to XS as IVs, that broke
+      partitions() in 5.6.2.
+
+    * Small touches to the code.
+
+    * Added a few tests.
+
 0.22 May 15 2007
 
     * The previous release was built with Apple's version of tar, which

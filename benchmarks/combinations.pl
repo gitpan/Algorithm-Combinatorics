@@ -18,11 +18,11 @@ sub mcomb {
     1 while $iter->next_combination;
 }
 
-cmpthese(-5, {
+cmpthese(-10, {
     acomb => \&acomb,
     mcomb => \&mcomb,
 });
 
 #         Rate mcomb acomb
-# mcomb 87.5/s    --  -96%
-# acomb 2282/s 2506%    --
+# mcomb 87.7/s    --  -96%
+# acomb 2245/s 2461%    --
