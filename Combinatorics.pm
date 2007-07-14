@@ -3,7 +3,7 @@ package Algorithm::Combinatorics;
 use 5.006002;
 use strict;
 
-our $VERSION = '0.23';
+our $VERSION = '0.24';
 
 use XSLoader;
 XSLoader::load('Algorithm::Combinatorics', $VERSION);
@@ -24,6 +24,7 @@ our @EXPORT_OK = qw(
     derangements
     complete_permutations
     partitions
+    subsets
 );
 
 our %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
@@ -64,6 +65,23 @@ sub combinations_with_repetition {
     return __contextualize($iter);
 }
 
+sub subsets {
+    my ($data, $k) = @_;
+    __check_params($data, $k, 1);
+    
+    return combinations($data, $k) if defined $k;
+    
+    my @iters = ();
+    push @iters, scalar(combinations($data, $_)) for 0..@$data;
+    my $iter = Algorithm::Combinatorics::Iterator->new(sub {
+        my $subset = $iters[0]->next;
+        return $subset if defined $subset;
+        shift @iters;
+        @iters ? $iters[0]->next : undef;
+    });
+    
+    return __contextualize($iter);
+}
 
 sub variations {
     my ($data, $k) = @_;
@@ -278,11 +296,11 @@ sub __slice_partition_of_size_p {
 
 
 sub __check_params {
-    my ($data, $k) = @_;
+    my ($data, $k, $k_is_not_required) = @_;
     if (not defined $data) {
         croak("Missing parameter data");
     }
-    if (not defined $k) {
+    unless ($k_is_not_required || defined $k) {
         croak("Missing parameter k");
     }
 
@@ -291,7 +309,7 @@ sub __check_params {
         croak("Parameter data is not an arrayref");
     }
     
-    carp("Parameter k is negative") if $k < 0;
+    carp("Parameter k is negative") if !$k_is_not_required && $k < 0;
 }
 
 
@@ -397,7 +415,7 @@ Algorithm::Combinatorics - Efficient generation of combinatorial sequences
 
 =head1 VERSION
 
-This documentation refers to Algorithm::Combinatorics version 0.23.
+This documentation refers to Algorithm::Combinatorics version 0.24.
 
 =head1 DESCRIPTION
 
@@ -420,6 +438,7 @@ Algorithm::Combinatorics provides these subroutines:
     combinations(\@data, $k)
     combinations_with_repetition(\@data, $k)
     partitions(\@data[, $k])
+    subsets(\@data[, $k])
 
 All of them are context-sensitive:
 
@@ -658,6 +677,17 @@ The number of partitions of size C<k> of a set of C<n> elements are known as Sti
     S(n, 0) = 0 if n > 0
     S(n, 1) = S(n, n) = 1
     S(n, k) = S(n-1, k-1) + kS(n-1, k)
+
+
+=head2 subsets(\@data[, $k])
+
+This subroutine iterates over the subsets of data, which is assumed to represent a set. If you pass the optional parameter C<$k> the iteration runs over subsets of data of size C<$k>.
+
+The number of subsets of a set of C<n> elements is
+
+  2**n
+
+See some values at L<http://www.research.att.com/~njas/sequences/A000079>.
 
 
 =head1 CORNER CASES

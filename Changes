@@ -1,6 +1,10 @@
 Revision history for Algorithm-Combinatorics
 
-0.23
+0.24 Jul 14 2007
+
+    * Added subsets().
+
+0.23 May 19 2007
 
     * We do not longer assume indices com to XS as IVs, that broke
       partitions() in 5.6.2.
