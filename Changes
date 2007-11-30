@@ -1,5 +1,9 @@
 Revision history for Algorithm-Combinatorics
 
+0.25 Nov 30 2007
+
+    * Improved speed of subsets() copying the algorithm in List::PowerSet.
+
 0.24 Jul 14 2007
 
     * Added subsets().

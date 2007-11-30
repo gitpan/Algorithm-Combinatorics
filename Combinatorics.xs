@@ -387,6 +387,36 @@ int __next_partition_of_size_p(SV* k_avptr, SV* M_avptr, int p)
     return -1;
 }
 
+/* 
+  This subroutine has been copied from List::PowerSet.
+  
+  It uses a vector of bits "odometer" to indicate which elements to include
+  in each iteration. The odometer runs and eventually exhausts all possible
+  combinations of 0s and 1s.
+*/
+AV* __next_subset(SV* data_avptr, SV* odometer_avptr)
+{
+    AV* data     = GETAV(data_avptr);
+    AV* odometer = GETAV(odometer_avptr);
+    I32 len_data = av_len(data);
+    AV* subset   = newAV();
+    IV adjust    = 1;
+    int i;
+    IV n;
+    
+    for (i = 0; i <= len_data; ++i) {
+        n = GETIV(odometer, i);
+        if (n) {
+            av_push(subset, newSVsv(*av_fetch(data, i, 0)));
+        }
+        if (adjust) {
+            adjust = 1 - n;
+            SETIV(odometer, i, adjust);
+        }
+    }
+    
+    return subset;
+}
 
 /** -------------------------------------------------------------------
  *
@@ -448,3 +478,8 @@ __next_partition_of_size_p(k_avptr, M_avptr, p)
     SV* k_avptr
     SV* M_avptr
     int p
+
+AV*
+__next_subset(data_avptr, odometer_avptr)
+    SV* data_avptr
+    SV* odometer_avptr

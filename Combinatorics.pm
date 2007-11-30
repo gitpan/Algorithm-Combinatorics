@@ -3,7 +3,7 @@ package Algorithm::Combinatorics;
 use 5.006002;
 use strict;
 
-our $VERSION = '0.24';
+our $VERSION = '0.25';
 
 use XSLoader;
 XSLoader::load('Algorithm::Combinatorics', $VERSION);
@@ -71,13 +71,13 @@ sub subsets {
     
     return combinations($data, $k) if defined $k;
     
-    my @iters = ();
-    push @iters, scalar(combinations($data, $_)) for 0..@$data;
+    my $finished = 0;
+    my @odometer = (1) x @$data;
     my $iter = Algorithm::Combinatorics::Iterator->new(sub {
-        my $subset = $iters[0]->next;
-        return $subset if defined $subset;
-        shift @iters;
-        @iters ? $iters[0]->next : undef;
+        return if $finished;
+        my $subset = __next_subset($data, \@odometer);
+        $finished = 1 if @$subset == 0;
+        $subset;
     });
     
     return __contextualize($iter);
@@ -415,13 +415,13 @@ Algorithm::Combinatorics - Efficient generation of combinatorial sequences
 
 =head1 VERSION
 
-This documentation refers to Algorithm::Combinatorics version 0.24.
+This documentation refers to Algorithm::Combinatorics version 0.25.
 
 =head1 DESCRIPTION
 
 Algorithm::Combinatorics is an efficient generator of combinatorial sequences. Algorithms are selected from the literature (work in progress, see L</REFERENCES>). Iterators do not use recursion, nor stacks, and are written in C.
 
-Tuples are generated in lexicographic order.
+Tuples are generated in lexicographic order, except in C<subsets()>.
 
 =head1 SUBROUTINES
 
@@ -792,11 +792,12 @@ L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Algorithm-Combinatorics>.
 
 L<Math::Combinatorics> is a pure Perl module that offers similar features.
 
+L<List::PowerSet> offers a fast pure-Perl generator of power sets that
+Algorithm::Combinatorics copies and translates to XS.
+
 =head1 BENCHMARKS
 
-There are some benchmarks in the F<benchmarks> directory of the distribution
-that compare the performance of this module to the pure Perl one mentioned
-above.
+There are some benchmarks in the F<benchmarks> directory of the distribution.
 
 =head1 REFERENCES
 
