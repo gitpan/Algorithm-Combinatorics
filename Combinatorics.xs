@@ -7,7 +7,9 @@
  * that is enough to give NVs in 5.6.x.
  *
  * Once the next tuple has been computed the corresponding slice of data is
- * copied in the Perl side.
+ * copied in the Perl side. I tried to slice data here in C but it was in
+ * fact slightly slower. I think we would need to pass aliases to gain
+ * some more speed.
  *
  * All the subroutines return -1 when the sequence has been exhausted.
  */
@@ -387,13 +389,13 @@ int __next_partition_of_size_p(SV* k_avptr, SV* M_avptr, int p)
     return -1;
 }
 
-/* 
-  This subroutine has been copied from List::PowerSet.
-  
-  It uses a vector of bits "odometer" to indicate which elements to include
-  in each iteration. The odometer runs and eventually exhausts all possible
-  combinations of 0s and 1s.
-*/
+/*
+ * This subroutine has been copied from List::PowerSet.
+ *
+ * It uses a vector of bits "odometer" to indicate which elements to include
+ * in each iteration. The odometer runs and eventually exhausts all possible
+ * combinations of 0s and 1s.
+ */
 AV* __next_subset(SV* data_avptr, SV* odometer_avptr)
 {
     AV* data     = GETAV(data_avptr);
@@ -403,7 +405,7 @@ AV* __next_subset(SV* data_avptr, SV* odometer_avptr)
     IV adjust    = 1;
     int i;
     IV n;
-    
+
     for (i = 0; i <= len_data; ++i) {
         n = GETIV(odometer, i);
         if (n) {
@@ -414,8 +416,8 @@ AV* __next_subset(SV* data_avptr, SV* odometer_avptr)
             SETIV(odometer, i, adjust);
         }
     }
-    
-    return subset;
+
+    return (AV*) sv_2mortal((SV*) subset);
 }
 
 /** -------------------------------------------------------------------
